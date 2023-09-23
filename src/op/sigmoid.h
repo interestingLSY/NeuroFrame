@@ -6,6 +6,6 @@
 
 namespace NeuroFrame {
 
-Tensor relu(const Tensor &input);
+Tensor sigmoid(const Tensor &input);
 
 }

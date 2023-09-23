@@ -26,18 +26,7 @@ inline T get_product_over_vector(const std::vector<T> &data) {
 class Tensor {
 private:
 	MemFrag mem_frag;	// The fragment that stores the underlying data
-	Device device;	// The device that the tensor is on
-	dtype_t dtype;	// The data type of the tensor
-	Tensor(const MemFrag &frag, const Device &dev, const dtype_t &dtype, const int64_t &first_elem_offset, const std::vector<int64_t> &shape, const std::vector<int64_t> &stride);
-	
-	// Find the "first continuous dimension"
-	// The "first continuous dimension" refers to the first dimension that is
-	// continuous in the underlying memory fragment. We can calculate it
-	// by `shape` and `stride`. For example, if `shape` = [2, 3, 4] and
-	// `stride` = [14250, 4, 1], then the "first continuous dimension" is 1.
-	// This function is critical when doing memory-related operations
-	// If all dimensions are not continuous, return the number of dimensions (i.e. shape.size())
-	int find_first_continuous_dimension() const;
+	Tensor(const MemFrag &frag, const Device &dev, const dtype_t &dtype, const int64_t &first_elem_offset, const std::vector<int64_t> &shape);
 
 	// Get the offset (in elements) of a given position
 	int64_t get_elem_offset(const std::vector<int64_t> &pos) const;
@@ -46,6 +35,9 @@ private:
 	void* get_elem_addr(const std::vector<int64_t> &pos) const;
 
 public:
+	Device device;	// The device that the tensor is on
+	dtype_t dtype;	// The data type of the tensor
+	
 	Tensor(const Tensor &other) = default;
 	// Assign a scalar to a tensor (only applicable to scalar tensors)
 	Tensor& operator=(const Scalar &other);
@@ -57,6 +49,12 @@ public:
 	// the underlying memory fragment. `shape` is the shape of the tensor.
 	// `stride[i]` refers to the distance (in elements, not bytes) between two
 	// adjacent elements in the i-th dimension.
+	//
+	// Different from PyTorch, stride[i] always equals to the product of
+	// shape[i+1], shape[i+2], ..., shape[n-1], where n is the number of
+	// dimensions of the tensor. In other words, the tensor is always
+	// "continuous" in memory. I think this is a good design because it makes
+	// the implementation of operators much easier.
 	int64_t first_elem_offset;
 	std::vector<int64_t> shape;
 	std::vector<int64_t> stride;
@@ -64,6 +62,8 @@ public:
 	// Basic operations
 	// Return the number of elements in this tensor
 	int64_t numel() const;
+	// Return the start address
+	void* data_ptr() const;
 	
 	// Get the content (in NeuroFrame::Tensor with shape == []) of one element
 	Tensor get_elem(const std::vector<int64_t> &pos) const;

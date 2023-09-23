@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include <cuda_runtime.h>
+#include <cuda_runtime_api.h>
 
 namespace NeuroFrame {
 
@@ -33,6 +33,10 @@ public:
 
 	inline bool operator==(const Device& other) const {
 		return type == other.type && device_index == other.device_index;
+	}
+
+	inline bool operator!=(const Device& other) const {
+		return !(*this == other);
 	}
 };
 

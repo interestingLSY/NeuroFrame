@@ -6,28 +6,21 @@
 
 namespace NeuroFrame {
 
-Tensor::Tensor(const MemFrag &frag, const Device &dev, const dtype_t &dtype, const int64_t &first_elem_offset, const std::vector<int64_t> &shape, const std::vector<int64_t> &stride):
+Tensor::Tensor(const MemFrag &frag, const Device &dev, const dtype_t &dtype, const int64_t &first_elem_offset, const std::vector<int64_t> &shape):
 	mem_frag(frag),
 	device(dev),
 	dtype(dtype),
 	first_elem_offset(first_elem_offset),
-	shape(shape),
-	stride(stride)
+	shape(shape)
 {
-}
-
-int Tensor::find_first_continuous_dimension() const {
-	int result = shape.size();
-	int64_t shape_mult = 1;
-	for (int i = (int)shape.size()-1; i >= 0; --i) {
-		if (stride[i] == shape_mult) {
-			result = i;
-			shape_mult *= shape[i];
-		} else {
-			break;
+	// Calculate stride
+	stride.resize(shape.size());
+	if (!shape.empty()) {
+		stride[shape.size() - 1] = 1;
+		for (int i = shape.size() - 2; i >= 0; i--) {
+			stride[i] = stride[i+1] * shape[i+1];
 		}
 	}
-	return result;
 }
 
 int64_t Tensor::get_elem_offset(const std::vector<int64_t> &pos) const {
@@ -73,9 +66,13 @@ int64_t Tensor::numel() const {
 	return get_product_over_vector(this->shape);
 }
 
+void* Tensor::data_ptr() const {
+	return (char*)mem_frag.ptr + first_elem_offset * get_dtype_size(dtype);
+}
+
 Tensor Tensor::get_elem(const std::vector<int64_t> &pos) const {
 	int64_t offset = get_elem_offset(pos);
-	return Tensor(mem_frag, device, dtype, offset, {}, {});
+	return Tensor(mem_frag, device, dtype, offset, {});
 }
 
 Scalar Tensor::as_scalar() const {
@@ -107,35 +104,14 @@ Tensor Tensor::to(Device target) const {
 			);
 			return ret;
 		} else {
-			// TODO (Optimize) we can optimize the number of calls to CUDA runtime 
-			// by leveraging cudaMemcpy2D
 			Tensor ret(shape, dtype, target);
-			int fcd = find_first_continuous_dimension();
-			// Now dimensions >= fcd forms a continuous memory block, which can be migrated in one memcpy
-			// `mult_before_fcd` is the number of blocks we need to copy
-			int64_t mult_before_fcd = get_product_over_vector(std::vector<int64_t>(shape.begin(), shape.begin() + fcd));
-			// `mult_after_fcd` is the number of elements in each block
-			int64_t mult_after_fcd = get_product_over_vector(std::vector<int64_t>(shape.begin() + fcd, shape.end()));
-			// `block_size` is the size of each block in bytes
-			int64_t block_size = mult_after_fcd * get_dtype_size(dtype);
-			for (int64_t i = 0; i < mult_before_fcd; ++i) {
-				std::vector<int64_t> pos = {};
-				int64_t t = i;
-				for (int j = fcd-1; j >= 0; --j) {
-					pos.push_back(t % shape[j]);
-					t /= shape[j];
-				}
-				for (int j = fcd; j < (int)shape.size(); ++j) {
-					pos.push_back(0);
-				}
-				NeuroFrame::memcpy(
-					(char*)ret.mem_frag.ptr + i * block_size,
-					ret.device,
-					(char*)this->get_elem_addr(pos),
-					this->device,
-					block_size
-				);
-			}
+			NeuroFrame::memcpy(
+				(char*)ret.mem_frag.ptr,
+				ret.device,
+				(char*)this->mem_frag.ptr + first_elem_offset * get_dtype_size(dtype),
+				this->device,
+				numel() * get_dtype_size(dtype)
+			);
 			return ret;
 		}
 	}

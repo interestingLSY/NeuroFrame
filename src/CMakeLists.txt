@@ -1,3 +1,5 @@
+add_subdirectory(backend)
 add_subdirectory(basic)
 add_subdirectory(bin)
+add_subdirectory(op)
 add_subdirectory(tensor)
