@@ -3,6 +3,7 @@
 #include <functional>
 
 #include "src/basic/random.h"
+#include "src/op/tensor_eq.h"
 
 namespace NeuroFrame {
 
@@ -34,11 +35,6 @@ int64_t Tensor::get_elem_offset(const std::vector<int64_t> &pos) const {
 	return offset;
 }
 
-void* Tensor::get_elem_addr(const std::vector <int64_t> &pos) const {
-	int64_t offset = get_elem_offset(pos);
-	return (char*)mem_frag.ptr + offset * get_dtype_size(dtype);
-}
-
 Tensor& Tensor::operator=(const Scalar &other) {
 	if (shape.empty()) {
 		// Scalar tensor
@@ -68,6 +64,11 @@ int64_t Tensor::numel() const {
 
 void* Tensor::data_ptr() const {
 	return (char*)mem_frag.ptr + first_elem_offset * get_dtype_size(dtype);
+}
+
+void* Tensor::get_elem_addr(const std::vector <int64_t> &pos) const {
+	int64_t offset = get_elem_offset(pos);
+	return (char*)mem_frag.ptr + offset * get_dtype_size(dtype);
 }
 
 Tensor Tensor::get_elem(const std::vector<int64_t> &pos) const {
@@ -225,6 +226,10 @@ Tensor Tensor::randu(const std::vector<int64_t> &shape, dtype_t dtype, Device de
 
 Tensor Tensor::randu(const std::vector<int64_t> &shape, dtype_t dtype, Device device) {
 	return randu(shape, dtype, device, Scalar(-1.0, dtype), Scalar(1, dtype));
+}
+
+bool Tensor::operator==(const Tensor &other) const {
+	return tensor_eq(*this, other);
 }
 
 }

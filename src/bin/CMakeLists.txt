@@ -1,5 +1,0 @@
-add_executable(test_tensor test_tensor.cc)
-target_link_libraries(test_tensor neuroframe_tensor)
-
-add_executable(test_op test_op.cc)
-target_link_libraries(test_op neuroframe_tensor neuroframe_op)

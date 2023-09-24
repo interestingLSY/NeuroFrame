@@ -15,7 +15,7 @@ static op_forward_func_t sigmoid_forward_func = [](const std::vector<Tensor> &in
 	return {result};
 };
 
-static op_backward_func_t sigmoid_backward_func = [](const std::vector<Tensor> &output_grad, OpContext &ctx) -> std::vector<Tensor> {
+static op_backward_func_t sigmoid_backward_func = [](const std::vector<Tensor> &output_grad, const OpContext &ctx) -> std::vector<Tensor> {
 	do_basic_checkings_in_forward_and_backward(output_grad, ctx);
 	Tensor result = DISPATCH_TO_BACKEND(
 		output_grad[0].device.type,
@@ -23,6 +23,14 @@ static op_backward_func_t sigmoid_backward_func = [](const std::vector<Tensor> &
 	);
 	return {result};
 };
+
+Tensor sigmoid_forward_manual(const Tensor &input, OpContext &ctx) {
+	return sigmoid_forward_func({input}, ctx)[0];
+}
+
+Tensor sigmoid_backward_manual(const Tensor &output_grad, const OpContext &ctx) {
+	return sigmoid_backward_func({output_grad}, ctx)[0];
+}
 
 Tensor sigmoid(const Tensor &input) {
 	return perform_op(sigmoid_forward_func, sigmoid_backward_func, {input})[0];

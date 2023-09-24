@@ -15,7 +15,7 @@ static op_forward_func_t relu_forward_func = [](const std::vector<Tensor> &input
 	return {result};
 };
 
-static op_backward_func_t relu_backward_func = [](const std::vector<Tensor> &output_grad, OpContext &ctx) -> std::vector<Tensor> {
+static op_backward_func_t relu_backward_func = [](const std::vector<Tensor> &output_grad, const OpContext &ctx) -> std::vector<Tensor> {
 	do_basic_checkings_in_forward_and_backward(output_grad, ctx);
 	Tensor result = DISPATCH_TO_BACKEND(
 		output_grad[0].device.type,
@@ -23,6 +23,14 @@ static op_backward_func_t relu_backward_func = [](const std::vector<Tensor> &out
 	);
 	return {result};
 };
+
+Tensor relu_forward_manual(const Tensor &input, OpContext &ctx) {
+	return relu_forward_func({input}, ctx)[0];
+}
+
+Tensor relu_backward_manual(const Tensor &output_grad, const OpContext &ctx) {
+	return relu_backward_func({output_grad}, ctx)[0];
+}
 
 Tensor relu(const Tensor &input) {
 	return perform_op(relu_forward_func, relu_backward_func, {input})[0];

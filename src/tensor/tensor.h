@@ -31,9 +31,6 @@ private:
 	// Get the offset (in elements) of a given position
 	int64_t get_elem_offset(const std::vector<int64_t> &pos) const;
 
-	// Get the address of one element
-	void* get_elem_addr(const std::vector<int64_t> &pos) const;
-
 public:
 	Device device;	// The device that the tensor is on
 	dtype_t dtype;	// The data type of the tensor
@@ -54,7 +51,7 @@ public:
 	// shape[i+1], shape[i+2], ..., shape[n-1], where n is the number of
 	// dimensions of the tensor. In other words, the tensor is always
 	// "continuous" in memory. I think this is a good design because it makes
-	// the implementation of operators much easier.
+	// the implementation of kernels much easier.
 	int64_t first_elem_offset;
 	std::vector<int64_t> shape;
 	std::vector<int64_t> stride;
@@ -65,6 +62,8 @@ public:
 	// Return the start address
 	void* data_ptr() const;
 	
+	// Get the address of one element
+	void* get_elem_addr(const std::vector<int64_t> &pos) const;
 	// Get the content (in NeuroFrame::Tensor with shape == []) of one element
 	Tensor get_elem(const std::vector<int64_t> &pos) const;
 	// Return the element as a scalar. Only applicable to scalar tensors (tensors with shape == [])
@@ -88,6 +87,8 @@ public:
 	static Tensor randu(const std::vector<int64_t> &shape, dtype_t dtype, Device device, Scalar low, Scalar high);
 	// Fill with uniform distribution between -1 and +1
 	static Tensor randu(const std::vector<int64_t> &shape, dtype_t dtype, Device device);
+
+	bool operator==(const Tensor &other) const;
 };
 
 }

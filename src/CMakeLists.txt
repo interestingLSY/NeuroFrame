@@ -1,5 +1,6 @@
 add_subdirectory(backend)
 add_subdirectory(basic)
-add_subdirectory(bin)
+add_subdirectory(example)
 add_subdirectory(op)
 add_subdirectory(tensor)
+add_subdirectory(unittest)

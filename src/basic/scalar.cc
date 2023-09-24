@@ -87,4 +87,15 @@ std::string Scalar::to_string() const {
 	}
 }
 
+bool Scalar::operator==(const Scalar &other) const {
+	if (dtype != other.dtype) {
+		return false;
+	}
+	if (is_float_family()) {
+		return x.f == other.x.f;
+	} else {
+		LOG_FATAL("Unknown dtype");
+	}
+}
+
 }

@@ -65,4 +65,25 @@ int main() {
 		}
 		tensor2.print();
 	}
+
+	// Test tensor comparison
+	{
+		printf("5\n");
+		Tensor tensor1 = Tensor::zeros({10}, dtype_t::FLOAT32, Device::cpu());
+		Tensor tensor2 = Tensor::zeros({10}, dtype_t::FLOAT32, Device::cpu());
+		Tensor tensor3 = Tensor::randu({10}, dtype_t::FLOAT32, Device::cpu());
+		Tensor tensor4 = Tensor::zeros({10}, dtype_t::FLOAT32, Device::cuda());
+		Tensor tensor5 = Tensor::zeros({10}, dtype_t::FLOAT32, Device::cuda());
+		Tensor tensor6 = Tensor::randu({10}, dtype_t::FLOAT32, Device::cuda());
+		for (int i = 0; i < tensor1.numel(); ++i) {
+			tensor1.get_elem({i}) = (float)i;
+			tensor2.get_elem({i}) = (float)i;
+			tensor4.get_elem({i}) = (float)i;
+			tensor5.get_elem({i}) = (float)i;
+		}
+		printf("%d\n", tensor1 == tensor2);
+		printf("%d\n", tensor1 == tensor3);
+		printf("%d\n", tensor4 == tensor5);
+		printf("%d\n", tensor4 == tensor6);
+	}
 }

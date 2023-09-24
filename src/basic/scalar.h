@@ -69,6 +69,8 @@ public:
 	void save_to(void* ptr, dtype_t target_dtype) const;
 
 	std::string to_string() const;
+
+	bool operator==(const Scalar &other) const;
 };
 
 }

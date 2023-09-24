@@ -4,6 +4,7 @@
 #include <unordered_map>
 
 #include "src/basic/device.h"
+#include "scalar.h"
 
 namespace NeuroFrame {
 

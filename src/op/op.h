@@ -10,7 +10,7 @@
 namespace NeuroFrame {
 
 typedef std::function<std::vector<Tensor>(const std::vector<Tensor>&, OpContext &)> op_forward_func_t;
-typedef std::function<std::vector<Tensor>(const std::vector<Tensor>&, OpContext &)> op_backward_func_t;
+typedef std::function<std::vector<Tensor>(const std::vector<Tensor>&, const OpContext &)> op_backward_func_t;
 
 // perform_op: The abstraction of performing an operator.
 // 

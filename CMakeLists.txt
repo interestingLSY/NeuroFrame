@@ -30,6 +30,16 @@ else()
 	set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -O3 -DRELEASE -lineinfo --use_fast_math -arch=native")
 endif()
 
+# GoogleTest Preparation - Code block copied from
+#   https://google.github.io/googletest/quickstart-cmake.html
+include(FetchContent)
+FetchContent_Declare(
+  googletest
+  GIT_REPOSITORY https://gitee.com/mirrors/googletest.git	# We use the mirror from gitee.com to avoid the GFW (the original repo is https://github.com/google/googletest.git)
+  GIT_TAG release-1.12.1
+)
+FetchContent_MakeAvailable(googletest)
+
 include_directories(${PROJECT_SOURCE_DIR})
 include_directories(${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
 
