@@ -228,6 +228,20 @@ Tensor Tensor::randu(const std::vector<int64_t> &shape, dtype_t dtype, Device de
 	return randu(shape, dtype, device, Scalar(-1.0, dtype), Scalar(1, dtype));
 }
 
+// template<typename T>
+Tensor Tensor::from_vector(const std::vector<Scalar> &data, const std::vector<int64_t> &shape, dtype_t dtype, Device device) {
+	Tensor ret_h(shape, dtype, Device::cpu());
+	int64_t numel = ret_h.numel();
+	if (numel != (int64_t)data.size()) {
+		LOG_FATAL("The number of elements in the data vector does not match the number of elements in the tensor");
+	}
+	for (int64_t i = 0; i < numel; ++i) {
+		Scalar s = data[i];
+		s.save_to((char*)ret_h.mem_frag.ptr + i * get_dtype_size(dtype), dtype);
+	}
+	return ret_h.to(device);
+}
+
 bool Tensor::operator==(const Tensor &other) const {
 	return tensor_eq(*this, other);
 }

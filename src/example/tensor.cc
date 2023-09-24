@@ -10,8 +10,13 @@ int main() {
 		printf("1\n");
 		Tensor tensor1 = Tensor::zeros({2, 3, 4}, dtype_t::FLOAT32, Device::cpu());
 		Tensor tensor2 = Tensor::randu({4, 3, 1}, dtype_t::FLOAT16, Device::cpu());
+		Tensor tensor3 = Tensor::from_vector({
+			1., 2., 3., 4., 5.,
+			-1., -2., -3., -4., -5.
+		}, {2, 5}, dtype_t::FLOAT64, Device::cpu());
 		tensor1.print();
 		tensor2.print();
+		tensor3.print();
 	}
 
 	// Test scalar tensor on CPU
@@ -25,8 +30,13 @@ int main() {
 		printf("2\n");
 		Tensor tensor1 = Tensor::zeros({2, 3, 4}, dtype_t::FLOAT32, Device::cuda(0));
 		Tensor tensor2 = Tensor::randu({4, 3, 1}, dtype_t::FLOAT16, Device::cuda(0));
+		Tensor tensor3 = Tensor::from_vector({
+			1., 2., 3., 4., 5.,
+			-1., -2., -3., -4., -5.
+		}, {2, 5}, dtype_t::FLOAT64, Device::cuda(0));
 		tensor1.print();
 		tensor2.print();
+		tensor3.print();
 	}
 
 	// Test scalar tensor on CUDA

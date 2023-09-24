@@ -91,6 +91,8 @@ static Tensor Tensor::zeros(const std::vector<int64_t> &shape, dtype_t dtype, De
 static Tensor Tensor::randu(const std::vector<int64_t> &shape, dtype_t dtype, Device device, Scalar low, Scalar high);
 // Fill with uniform distribution between -1 and +1
 static Tensor Tensor::randu(const std::vector<int64_t> &shape, dtype_t dtype, Device device);
+// Create a tensor from a vector
+static Tensor Tensor::from_vector(const std::vector<Scalar> &data, const std::vector<int64_t> &shape, dtype_t dtype, Device device);
 ```
 
 #### Migration between Devices
