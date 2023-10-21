@@ -13,7 +13,7 @@ namespace NeuroFrame {
 // Output:
 //	- result: The result Tensor, = a+b
 // SavedContext: None
-static op_forward_func_t tensor_add_forward_func = [](const std::vector<Tensor> &input, OpContext &ctx) -> std::vector<Tensor> {
+static op_forward_func_t tensor_add_forward_func = [](const std::vector<Tensor> &input, OpContext &ctx, void* other_args) -> std::vector<Tensor> {
 	do_basic_checkings_in_forward_and_backward(input, ctx);
 	Tensor a = input[0];
 	Tensor b = input[1];
@@ -35,14 +35,14 @@ static op_backward_func_t tensor_add_backward_func = [](const std::vector<Tensor
 };
 
 Tensor tensor_add_forward_manual(const Tensor &a, const Tensor &b, OpContext &ctx) {
-	return tensor_add_forward_func({a, b}, ctx)[0];
+	return tensor_add_forward_func({a, b}, ctx, nullptr)[0];
 }
 
 Tensor tensor_add(const Tensor &a, const Tensor &b) {
 	return perform_op(tensor_add_forward_func, tensor_add_backward_func, {a, b})[0];
 }
 
-static op_forward_func_t tensor_sub_forward_func = [](const std::vector<Tensor> &input, OpContext &ctx) -> std::vector<Tensor> {
+static op_forward_func_t tensor_sub_forward_func = [](const std::vector<Tensor> &input, OpContext &ctx, void* other_args) -> std::vector<Tensor> {
 	do_basic_checkings_in_forward_and_backward(input, ctx);
 	Tensor a = input[0];
 	Tensor b = input[1];
@@ -65,7 +65,7 @@ static op_backward_func_t tensor_sub_backward_func = [](const std::vector<Tensor
 };
 
 Tensor tensor_sub_forward_manual(const Tensor &a, const Tensor &b, OpContext &ctx) {
-	return tensor_sub_forward_func({a, b}, ctx)[0];
+	return tensor_sub_forward_func({a, b}, ctx, nullptr)[0];
 }
 
 Tensor tensor_sub(const Tensor &a, const Tensor &b) {

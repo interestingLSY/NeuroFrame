@@ -6,6 +6,7 @@ add_library(neuroframe_backend_cuda STATIC
 	matmul.cu
 	tensor_binary_op.cu
 	tensor_unary_op.cu
+	pool.cu
 )
 
 target_link_libraries(neuroframe_backend_cuda PUBLIC neuroframe_tensor CUDA::cudart CUDA::cublas)

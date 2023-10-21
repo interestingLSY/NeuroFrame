@@ -9,6 +9,7 @@ add_library(neuroframe_op STATIC
 	matmul.cc
 	tensor_binary_op.cc
 	tensor_unary_op.cc
+	pool.cc
 )
 
 target_link_libraries(neuroframe_op PUBLIC

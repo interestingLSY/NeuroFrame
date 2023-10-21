@@ -10,10 +10,18 @@ namespace NeuroFrame {
 // It provides a function, `save_for_backward`, to save tensors for backward.
 class OpContext {
 	std::vector<Tensor> saved_tensors;
+	void* saved_args;
 
 public:
 	OpContext();
+	~OpContext();
+
+	void save_args(void* args_ptr, size_t args_size);
+
+	void* get_saved_args() const;
+
 	void save_for_backward(const Tensor &tensor);
+	
 	std::vector<Tensor> get_saved_tensors() const;
 };
 

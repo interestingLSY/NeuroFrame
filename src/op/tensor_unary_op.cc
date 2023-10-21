@@ -15,7 +15,7 @@ namespace NeuroFrame {
 // Output:
 //	- result: The result tensor, = -a
 // SavedContext: None
-static op_forward_func_t tensor_negate_forward_func = [](const std::vector<Tensor> &input, OpContext &ctx) -> std::vector<Tensor> {
+static op_forward_func_t tensor_negate_forward_func = [](const std::vector<Tensor> &input, OpContext &ctx, void* other_args) -> std::vector<Tensor> {
 	do_basic_checkings_in_forward_and_backward(input, ctx);
 	Tensor a = input[0];
 	Tensor result = DISPATCH_TO_BACKEND(
@@ -35,7 +35,7 @@ static op_backward_func_t tensor_negate_backward_func = [](const std::vector<Ten
 };
 
 Tensor tensor_negate_forward_manual(const Tensor &a, OpContext &ctx) {
-	return tensor_negate_forward_func({a}, ctx)[0];
+	return tensor_negate_forward_func({a}, ctx, nullptr)[0];
 }
 
 Tensor tensor_negate(const Tensor &a) {

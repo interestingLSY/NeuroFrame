@@ -5,7 +5,7 @@
 
 namespace NeuroFrame {
 
-static op_forward_func_t sigmoid_forward_func = [](const std::vector<Tensor> &input, OpContext &ctx) -> std::vector<Tensor> {
+static op_forward_func_t sigmoid_forward_func = [](const std::vector<Tensor> &input, OpContext &ctx, void* other_args) -> std::vector<Tensor> {
 	do_basic_checkings_in_forward_and_backward(input, ctx);
 	Tensor result = DISPATCH_TO_BACKEND(
 		input[0].device.type,
@@ -25,7 +25,7 @@ static op_backward_func_t sigmoid_backward_func = [](const std::vector<Tensor> &
 };
 
 Tensor sigmoid_forward_manual(const Tensor &input, OpContext &ctx) {
-	return sigmoid_forward_func({input}, ctx)[0];
+	return sigmoid_forward_func({input}, ctx, nullptr)[0];
 }
 
 Tensor sigmoid_backward_manual(const Tensor &output_grad, const OpContext &ctx) {

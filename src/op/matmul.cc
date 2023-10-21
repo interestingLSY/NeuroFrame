@@ -14,10 +14,18 @@ namespace NeuroFrame {
 // Saved tensors:
 //	- 0: Matrix A
 //  - 1: Matrix B
-static op_forward_func_t matmul_forward_func = [](const std::vector<Tensor> &input, OpContext &ctx) -> std::vector<Tensor> {
+static op_forward_func_t matmul_forward_func = [](const std::vector<Tensor> &input, OpContext &ctx, void* other_args) -> std::vector<Tensor> {
 	do_basic_checkings_in_forward_and_backward(input, ctx);
 	ctx.save_for_backward(input[0]);
 	ctx.save_for_backward(input[1]);
+	Tensor a = input[0];
+	Tensor b = input[1];
+	if (a.shape.size() != 2 || b.shape.size() != 2) {
+		LOG_FATAL("matmul_forward_func: input tensors must be 2D");
+	}
+	if (a.shape[1] != b.shape[0]) {
+		LOG_FATAL("matmul_forward_func: input tensors' shapes are not compatible");
+	}
 	Tensor result = DISPATCH_TO_BACKEND(
 		input[0].device.type,
 		matmul(input[0], input[1], false, false)
@@ -48,7 +56,7 @@ static op_backward_func_t matmul_backward_func = [](const std::vector<Tensor> &o
 };
 
 Tensor matmul_forward_manual(const Tensor &a, const Tensor &b, OpContext &ctx) {
-	return matmul_forward_func({a, b}, ctx)[0];
+	return matmul_forward_func({a, b}, ctx, nullptr)[0];
 }
 
 std::vector<Tensor> matmul_backward_manual(const Tensor &output_grad, const OpContext &ctx) {

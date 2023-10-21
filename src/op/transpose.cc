@@ -11,7 +11,7 @@ namespace NeuroFrame {
 // Outputs:
 //	- 0: Matrix B = A^T
 // Saved tensors: None
-static op_forward_func_t transpose_forward_func = [](const std::vector<Tensor> &input, OpContext &ctx) -> std::vector<Tensor> {
+static op_forward_func_t transpose_forward_func = [](const std::vector<Tensor> &input, OpContext &ctx, void* other_args) -> std::vector<Tensor> {
 	do_basic_checkings_in_forward_and_backward(input, ctx);
 	Tensor a = input[0];
 	if (a.dim() != 2) {
@@ -34,7 +34,7 @@ static op_backward_func_t transpose_backward_func = [](const std::vector<Tensor>
 };
 
 Tensor transpose_forward_manual(const Tensor &input, OpContext &ctx) {
-	return transpose_forward_func({input}, ctx)[0];
+	return transpose_forward_func({input}, ctx, nullptr)[0];
 }
 
 Tensor transpose_backward_manual(const Tensor &output_grad, const OpContext &ctx) {
