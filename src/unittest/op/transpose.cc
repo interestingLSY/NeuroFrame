@@ -9,7 +9,6 @@
 #include "src/tensor/tensor.h"
 
 #include "src/op/transpose.h"
-#include "src/op/sigmoid.h"
 
 using namespace NeuroFrame;
 

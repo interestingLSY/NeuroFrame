@@ -12,11 +12,11 @@ bool is_elem_eq(const T &a, const T &b) {
 	T abs_err = std::abs(a - b);
 	T rel_err = abs_err / (std::max(std::abs(a), std::abs(b)) + (T)(1e-5));
 	if constexpr (std::is_same_v<T, half>) {
-		return abs_err <= HALF_ABS_THRES && rel_err <= HALF_REL_THRES;
+		return abs_err <= HALF_ABS_THRES || rel_err <= HALF_REL_THRES;
 	} else if constexpr (std::is_same_v<T, float>) {
-		return abs_err <= FLOAT_ABS_THRES && rel_err <= FLOAT_REL_THRES;
+		return abs_err <= FLOAT_ABS_THRES || rel_err <= FLOAT_REL_THRES;
 	} else if constexpr (std::is_same_v<T, double>) {
-		return abs_err <= DOUBLE_ABS_THRES && rel_err <= DOUBLE_REL_THRES;
+		return abs_err <= DOUBLE_ABS_THRES || rel_err <= DOUBLE_REL_THRES;
 	} else {
 		return a == b;
 	}

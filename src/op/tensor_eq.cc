@@ -8,6 +8,7 @@
 
 namespace NeuroFrame {
 
+// tensor_eq: check whether two tensors are equal
 bool tensor_eq(const Tensor &input1, const Tensor &input2) {
 	if (input1.device != input2.device) {
 		LOG_FATAL("Cannot compare tensors on different devices");
