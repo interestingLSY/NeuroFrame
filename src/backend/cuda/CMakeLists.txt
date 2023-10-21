@@ -4,6 +4,8 @@ add_library(neuroframe_backend_cuda STATIC
 	tensor_eq.cu
 	transpose.cu
 	matmul.cu
+	tensor_binary_op.cu
+	tensor_unary_op.cu
 )
 
 target_link_libraries(neuroframe_backend_cuda PUBLIC neuroframe_tensor CUDA::cudart CUDA::cublas)

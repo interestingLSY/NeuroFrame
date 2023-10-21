@@ -4,6 +4,8 @@ add_library(neuroframe_backend_cpu STATIC
 	tensor_eq.cc
 	transpose.cc
 	matmul.cc
+	tensor_binary_op.cc
+	tensor_unary_op.cc
 )
 
 target_link_libraries(neuroframe_backend_cpu PUBLIC neuroframe_tensor)

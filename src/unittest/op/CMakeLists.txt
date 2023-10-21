@@ -1,7 +1,9 @@
 add_executable(unittest_op
 	activations.cc
+	binary_ops.cc
 	transpose.cc
 	matmul.cc
+	unary_ops.cc
 )
 target_link_libraries(unittest_op PUBLIC
 	neuroframe_op

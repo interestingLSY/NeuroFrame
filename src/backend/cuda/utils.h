@@ -5,6 +5,8 @@
 #include <cstdlib>
 #include <cmath>
 
+#include "cuda_runtime.h"
+
 #include "src/basic/log.h"
 
 namespace NeuroFrame::Backend::CUDA {

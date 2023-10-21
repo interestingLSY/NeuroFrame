@@ -7,6 +7,8 @@ add_library(neuroframe_op STATIC
 	tensor_eq.cc
 	transpose.cc
 	matmul.cc
+	tensor_binary_op.cc
+	tensor_unary_op.cc
 )
 
 target_link_libraries(neuroframe_op PUBLIC
