@@ -5,6 +5,8 @@
 #include <cstdlib>
 #include <cmath>
 
+#include "src/basic/log.h"
+
 namespace NeuroFrame::Backend::CUDA {
 
 constexpr int ELEMENT_WISE_KERNEL_BLOCK_SIZE = 256;
@@ -34,5 +36,20 @@ inline int element_wise_kernel_get_num_grids(int64_t n, int64_t block_size = ELE
 				LOG_FATAL("Unknown dtype."); \
 		} \
 	}()
+
+// get_cuda_datatype: Get the CUDA data type from the C++ type.
+template<typename T>
+cudaDataType_t get_cuda_datatype() {
+    if (std::is_same<T, half>::value) {
+        return CUDA_R_16F;
+    } else if (std::is_same<T, float>::value) {
+        return CUDA_R_32F;
+    } else if (std::is_same<T, double>::value) {
+        return CUDA_R_64F;
+    } else {
+        LOG_FATAL("Cuda data type: Unsupported type");
+    }
+}
+
 
 }

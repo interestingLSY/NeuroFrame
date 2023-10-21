@@ -5,6 +5,7 @@ add_library(neuroframe_op STATIC
 	relu.cc
 	sigmoid.cc
 	tensor_eq.cc
+	transpose.cc
 )
 
 target_link_libraries(neuroframe_op PUBLIC

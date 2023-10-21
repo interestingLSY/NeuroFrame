@@ -40,6 +40,9 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(googletest)
 
+find_package(OpenMP REQUIRED)
+link_libraries(OpenMP::OpenMP_CXX)
+
 include_directories(${PROJECT_SOURCE_DIR})
 include_directories(${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
 

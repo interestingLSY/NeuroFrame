@@ -61,6 +61,8 @@ public:
 	int64_t numel() const;
 	// Return the start address
 	void* data_ptr() const;
+	// Return the dimension (i.e. the length of `shape`)
+	int64_t dim() const;
 	
 	// Get the address of one element
 	void* get_elem_addr(const std::vector<int64_t> &pos) const;

@@ -66,6 +66,10 @@ void* Tensor::data_ptr() const {
 	return (char*)mem_frag.ptr + first_elem_offset * get_dtype_size(dtype);
 }
 
+int64_t Tensor::dim() const {
+	return shape.size();
+}
+
 void* Tensor::get_elem_addr(const std::vector <int64_t> &pos) const {
 	int64_t offset = get_elem_offset(pos);
 	return (char*)mem_frag.ptr + offset * get_dtype_size(dtype);
@@ -215,6 +219,7 @@ Tensor Tensor::randu(const std::vector<int64_t> &shape, dtype_t dtype, Device de
 	double low_d = low.as_double();
 	double high_d = high.as_double();
 	int64_t numel = ret_cpu.numel();
+	#pragma omp parallel for schedule(static)
 	for (int64_t i = 0; i < numel; ++i) {
 		double x = std::uniform_real_distribution<double>(low_d, high_d)(mt19937_64_engine);
 		Scalar s(x, dtype);
