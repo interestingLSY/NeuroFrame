@@ -33,15 +33,17 @@ TEST_P(MatmulTest, MatmulTest) {
 
 	OpContext ctx_d;
 	Tensor result_d = matmul_forward_manual(a_h.to(device_d), b_h.to(device_d), ctx_d);
-	// std::vector<Tensor> grad_d = matmul_backward_manual(output_grad_h.to(device_d), ctx_d);
+	std::vector<Tensor> grad_d = matmul_backward_manual(output_grad_h.to(device_d), ctx_d);
 
 	// Compare the results
 	ASSERT_EQ(result_h, result_d.to(device_h));
+	ASSERT_EQ(grad_h[0], grad_d[0].to(device_h));
+	ASSERT_EQ(grad_h[1], grad_d[1].to(device_h));
 }
 
 INSTANTIATE_TEST_SUITE_P(MatmulTest, MatmulTest, testing::Combine(
 	testing::Values(dtype_t::FLOAT16, dtype_t::FLOAT32, dtype_t::FLOAT64),
-	testing::Values(2, 10, 200, 1145),
-	testing::Values(2, 10, 200, 1145),
-	testing::Values(2, 10, 200, 114)
+	testing::Values(2, 10, 200, 233),
+	testing::Values(2, 10, 200, 233),
+	testing::Values(2, 10, 200, 233)
 ));
