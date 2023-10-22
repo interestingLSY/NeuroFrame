@@ -92,6 +92,11 @@ Scalar::Scalar(double f, dtype_t dtype) {
 	x.f = f;
 }
 
+Scalar::Scalar(int64_t i, dtype_t dtype) {
+	this->dtype = dtype;
+	x.i = i;
+}
+
 double Scalar::as_double() const {
 	if (is_float_family()) {
 		return x.f;

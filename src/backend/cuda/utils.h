@@ -8,6 +8,7 @@
 #include "cuda_runtime.h"
 
 #include "src/basic/log.h"
+#include "src/backend/utils.h"
 
 namespace NeuroFrame::Backend::CUDA {
 
@@ -41,7 +42,7 @@ inline int element_wise_kernel_get_num_grids(int64_t n, int64_t block_size = ELE
 
 // get_cuda_datatype: Get the CUDA data type from the C++ type.
 template<typename T>
-cudaDataType_t get_cuda_datatype() {
+inline cudaDataType_t get_cuda_datatype() {
     if (std::is_same<T, half>::value) {
         return CUDA_R_16F;
     } else if (std::is_same<T, float>::value) {
@@ -53,5 +54,34 @@ cudaDataType_t get_cuda_datatype() {
     }
 }
 
+template<typename T>
+__host__ __device__ __forceinline__ constexpr T get_min() {
+	if constexpr (std::is_same<T, half>::value) {
+		return HALF_MIN;
+	} else if constexpr (std::is_same<T, float>::value) {
+		return FLOAT_MIN;
+	} else if constexpr (std::is_same<T, double>::value) {
+		return DOUBLE_MIN;
+	} else {
+		return 0;
+	}
+}
+
+template<typename T>
+__host__ __device__ __forceinline__ constexpr T get_max() {
+	if constexpr (std::is_same<T, half>::value) {
+		return HALF_MAX;
+	} else if constexpr (std::is_same<T, float>::value) {
+		return FLOAT_MAX;
+	} else if constexpr (std::is_same<T, double>::value) {
+		return DOUBLE_MAX;
+	} else {
+		return 0;
+	}
+}
+
+__device__ __forceinline__ half max(const half a, const half b) {
+	return __hgt(a, b) ? a : b;
+}
 
 }

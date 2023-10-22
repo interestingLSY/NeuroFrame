@@ -233,6 +233,22 @@ Tensor Tensor::randu(const std::vector<int64_t> &shape, dtype_t dtype, Device de
 	return randu(shape, dtype, device, Scalar(-1.0f, dtype), Scalar(1.0f, dtype));
 }
 
+Tensor Tensor::randint(const std::vector<int64_t> &shape, dtype_t dtype, Device device,
+	Scalar low, Scalar high) {
+	Tensor ret_cpu(shape, dtype, Device::cpu());
+	int64_t low_d = low.as_int64();
+	int64_t high_d = high.as_int64();
+	int64_t numel = ret_cpu.numel();
+	#pragma omp parallel for schedule(static)
+	for (int64_t i = 0; i < numel; ++i) {
+		int64_t x = std::uniform_int_distribution<int64_t>(low_d, high_d)(mt19937_64_engine);
+		Scalar s(x, dtype);
+		s.save_to((char*)ret_cpu.mem_frag.ptr + i * get_dtype_size(dtype), dtype);
+	}
+	Tensor ret = ret_cpu.to(device);
+	return ret;
+}
+
 // template<typename T>
 Tensor Tensor::from_vector(const std::vector<Scalar> &data, const std::vector<int64_t> &shape, dtype_t dtype, Device device) {
 	Tensor ret_h(shape, dtype, Device::cpu());

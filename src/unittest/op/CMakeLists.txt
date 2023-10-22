@@ -5,6 +5,7 @@ add_executable(unittest_op
 	matmul.cc
 	unary_ops.cc
 	pool.cc
+	cross_entropy_loss.cc
 )
 target_link_libraries(unittest_op PUBLIC
 	neuroframe_op
