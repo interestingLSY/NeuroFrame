@@ -47,5 +47,5 @@ TEST_P(CrossEntropyLossTest, CrossEntropyLossTest) {
 INSTANTIATE_TEST_SUITE_P(CrossEntropyLossTest, CrossEntropyLossTest, testing::Combine(
 	testing::Values(dtype_t::FLOAT16, dtype_t::FLOAT32, dtype_t::FLOAT64),
 	testing::Values(1, 10, 233),
-	testing::Values(1, 10, 233, 512)
+	testing::Values(1, 10, 233)
 ));

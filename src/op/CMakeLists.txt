@@ -11,6 +11,7 @@ add_library(neuroframe_op STATIC
 	tensor_unary_op.cc
 	pool.cc
 	cross_entropy_loss.cc
+	convolution.cc
 )
 
 target_link_libraries(neuroframe_op PUBLIC

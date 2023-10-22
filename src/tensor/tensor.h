@@ -63,6 +63,8 @@ public:
 	void* data_ptr() const;
 	// Return the dimension (i.e. the length of `shape`)
 	int64_t dim() const;
+	// Reshape
+	Tensor reshape(const std::vector<int64_t> &new_shape) const;
 	
 	// Get the address of one element
 	void* get_elem_addr(const std::vector<int64_t> &pos) const;
@@ -78,7 +80,7 @@ public:
 	// The same as `to(Device::cuda(device_index))`
 	Tensor cuda(int device_index = 0) const;
 	
-	void print(int64_t max_display_per_dim = 16) const;
+	void print(int64_t max_display_per_dim = 16, bool in_compat_stype = false) const;
 
 	// The following functions generate a tensor with the given shape, dtype and device
 	// Do not fill

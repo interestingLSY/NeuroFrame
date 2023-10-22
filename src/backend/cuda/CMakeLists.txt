@@ -8,6 +8,7 @@ add_library(neuroframe_backend_cuda STATIC
 	tensor_unary_op.cu
 	pool.cu
 	cross_entropy_loss.cu
+	convolution.cu
 )
 
 target_link_libraries(neuroframe_backend_cuda PUBLIC neuroframe_tensor CUDA::cudart CUDA::cublas)

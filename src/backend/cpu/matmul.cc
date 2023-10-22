@@ -70,4 +70,42 @@ Tensor matmul(const Tensor &input1, const Tensor &input2, bool transpose_a, bool
 	return output;
 }
 
+Tensor batched_matmul(const Tensor &input1, const Tensor &input2, bool transpose_a, bool transpose_b) {
+	if (input1.dim() != 3 && input1.dim() != 2) {
+		LOG_FATAL("Batched matmul: the dim of input1 is not in [2, 3]");
+	}
+	if (input2.dim() != 3 && input2.dim() != 2) {
+		LOG_FATAL("Batched matmul: the dim of input2 is not in [2, 3]");
+	}
+
+	bool is_1_batched = input1.dim() == 3;
+	bool is_2_batched = input2.dim() == 3;
+	if (!is_1_batched && !is_2_batched) {
+		return matmul(input1, input2, transpose_a, transpose_b);
+	}
+
+	int64_t batch_count = is_1_batched ? input1.shape[0] : input2.shape[0];
+	int64_t m = transpose_a ? input1.shape[is_1_batched ? 2 : 1] : input1.shape[is_1_batched ? 1 : 0];
+	int64_t k1 = transpose_a ? input1.shape[is_1_batched ? 1 : 0] : input1.shape[is_1_batched ? 2 : 1];
+	int64_t k2 = transpose_b ? input2.shape[is_2_batched ? 2 : 1] : input2.shape[is_2_batched ? 1 : 0];
+	int64_t n = transpose_b ? input2.shape[is_2_batched ? 1 : 0] : input2.shape[is_2_batched ? 2 : 1];
+	if (k1 != k2) {
+		LOG_FATAL("Batched matmul: Dimension mismatch");
+	}
+
+	Tensor output({batch_count, m, n}, input1.dtype, input1.device);
+	for (int i = 0; i < batch_count; ++i) {
+		DISPATCH_ON_DTYPE_CPU_BACKEND(input1.dtype, matmul_kernel(
+			(const T*) input1.data_ptr() + (is_1_batched ? i * m * k1 : (int64_t)0),
+			(const T*) input2.data_ptr() + (is_2_batched ? i * k1 * n : (int64_t)0),
+			(T*) output.data_ptr() + i * m * n,
+			m, n, k1,
+			transpose_a,
+			transpose_b
+		));
+	}
+
+	return output;
+}
+
 }

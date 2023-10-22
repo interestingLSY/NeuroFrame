@@ -70,6 +70,13 @@ int64_t Tensor::dim() const {
 	return shape.size();
 }
 
+Tensor Tensor::reshape(const std::vector<int64_t> &new_shape) const {
+	if (get_product_over_vector(new_shape) != numel()) {
+		LOG_FATAL("The number of elements in the new shape does not match the number of elements in the tensor");
+	}
+	return Tensor(mem_frag, device, dtype, first_elem_offset, new_shape);
+}
+
 void* Tensor::get_elem_addr(const std::vector <int64_t> &pos) const {
 	int64_t offset = get_elem_offset(pos);
 	return (char*)mem_frag.ptr + offset * get_dtype_size(dtype);
@@ -131,7 +138,7 @@ Tensor Tensor::cuda(int device_index) const {
 }
 
 
-void Tensor::print(int64_t max_display_per_dim /* default: 16 */) const {
+void Tensor::print(int64_t max_display_per_dim /* default: 16 */, bool in_compat_stype /* default: false*/) const {
 	printf("Tensor(");
 	if (shape.empty()) {
 		if (this->device.type != device_type_t::CPU) {
@@ -157,6 +164,12 @@ void Tensor::print(int64_t max_display_per_dim /* default: 16 */) const {
 				for (int64_t i = 0; i < shape[cur_dim]; ++i) {
 					if (i != 0) {
 						printf(", ");
+					}
+					if (cur_dim != (int)shape.size() - 1 && !in_compat_stype) {
+						printf("\n");
+						for (int j = 0; j < cur_dim + 1; ++j) {
+							printf("  ");
+						}
 					}
 					std::vector<int64_t> new_pos = pos;
 					new_pos.push_back(i);

@@ -6,6 +6,7 @@ add_executable(unittest_op
 	unary_ops.cc
 	pool.cc
 	cross_entropy_loss.cc
+	convolution.cc
 )
 target_link_libraries(unittest_op PUBLIC
 	neuroframe_op
