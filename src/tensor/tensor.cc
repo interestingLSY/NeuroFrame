@@ -230,7 +230,7 @@ Tensor Tensor::randu(const std::vector<int64_t> &shape, dtype_t dtype, Device de
 }
 
 Tensor Tensor::randu(const std::vector<int64_t> &shape, dtype_t dtype, Device device) {
-	return randu(shape, dtype, device, Scalar(-1.0, dtype), Scalar(1, dtype));
+	return randu(shape, dtype, device, Scalar(-1.0f, dtype), Scalar(1.0f, dtype));
 }
 
 // template<typename T>

@@ -16,7 +16,7 @@ namespace NeuroFrame::Backend::CUDA {
 template<typename T>
 __global__ void pool_kernel(
 	T* output,			// [batch_size, input_height/pool_size, input_width/pool_size]
-	half* max_mask,	// [batch_size, input_height, input_width], Use half* since our tensor currently does not support bool
+	int8_t* max_mask,	// [batch_size, input_height, input_width]
 	const T* input,		// [batch_size, input_height, input_width]
 	int64_t input_height,
 	int64_t input_width,
@@ -50,7 +50,7 @@ __global__ void pool_kernel(
 		max_mask[
 			batch_index*input_width*input_height
 			+ (pool_y_index*pool_size + max_offset_y)*input_width
-			+ pool_x_index*pool_size + max_offset_x] = (half)1.0;
+			+ pool_x_index*pool_size + max_offset_x] = 1;
 	}
 }
 
@@ -75,11 +75,11 @@ std::pair<Tensor, Tensor> pool_forward(const Tensor &input, int pool_size) {
 	output_shape.push_back(input.shape[input.shape.size()-2]/pool_size);
 	output_shape.push_back(input.shape[input.shape.size()-1]/pool_size);
 	Tensor output(output_shape, input.dtype, input.device);
-	Tensor max_mask = Tensor::zeros(input.shape, dtype_t::FLOAT16, input.device);
+	Tensor max_mask = Tensor::zeros(input.shape, dtype_t::INT8, input.device);
 
 	DISPATCH_ON_DTYPE_CUDA_BACKEND(input.dtype, pool_kernel<<<dim3(batch_size, input_height/pool_size), std::min(input_width/pool_size, (int64_t)512)>>>(
 		(T*) output.data_ptr(),
-		(half*) max_mask.data_ptr(),
+		(int8_t*) max_mask.data_ptr(),
 		(const T*) input.data_ptr(),
 		input_height,
 		input_width,
@@ -98,7 +98,7 @@ template<typename T>
 __global__ void pool_backward_kernel(
 	T* input_grad,
 	const T* output_grad,
-	const half* max_mask,
+	const int8_t* max_mask,
 	int64_t input_height,
 	int64_t input_width,
 	int64_t pool_size,
@@ -115,14 +115,14 @@ __global__ void pool_backward_kernel(
 			+ batch_index*(input_width/pool_size)*(input_height/pool_size)
 			+ pool_y_index*(input_width/pool_size)
 			+ pool_x_index];
-		const half* cur_max_mask = max_mask
+		const int8_t* cur_max_mask = max_mask
 			+ batch_index*input_width*input_height
 			+ pool_y_index*pool_size*input_width
 			+ pool_x_index*pool_size;
 		for (int64_t i = 0; i < pool_size; ++i) {
 			for (int64_t j = 0; j < pool_size; ++j) {
 				cur_pool[i*input_width + j] = cur_output_grad * 
-					((cur_max_mask[i*input_width + j] > (half)0.5) ? (T)1.0 : (T)0.0);
+					(T)cur_max_mask[i*input_width + j];
 			}
 		}
 	}
@@ -145,7 +145,7 @@ Tensor pool_backward(const Tensor &output_grad, const Tensor &max_mask, int pool
 	DISPATCH_ON_DTYPE_CUDA_BACKEND(output_grad.dtype, pool_backward_kernel<<<dim3(batch_size, input_height/pool_size), std::min(input_width/pool_size, (int64_t)512)>>>(
 		(T*) input_grad.data_ptr(),
 		(const T*) output_grad.data_ptr(),
-		(const half*) max_mask.data_ptr(),
+		(const int8_t*) max_mask.data_ptr(),
 		input_height,
 		input_width,
 		pool_size,

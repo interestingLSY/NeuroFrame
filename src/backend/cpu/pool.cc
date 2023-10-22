@@ -9,7 +9,7 @@ namespace NeuroFrame::Backend::CPU {
 template<typename T>
 void pool_forward_kernel(
 	T* output,
-	half* max_mask,
+	int8_t* max_mask,
 	const T* input,
 	int64_t input_height,
 	int64_t input_width,
@@ -35,7 +35,7 @@ void pool_forward_kernel(
 					}
 				}
 				output[b*output_height*output_width + i*output_width + j] = max_value;
-				max_mask[max_index] = 1.0f;
+				max_mask[max_index] = 1;
 			}
 		}
 	}
@@ -61,11 +61,11 @@ std::pair<Tensor, Tensor> pool_forward(const Tensor &input, int pool_size) {
 	output_shape.push_back(input_height/pool_size);
 	output_shape.push_back(input_width/pool_size);
 	Tensor output(output_shape, input.dtype, input.device);
-	Tensor max_mask = Tensor::zeros(input.shape, dtype_t::FLOAT16, input.device);
+	Tensor max_mask = Tensor::zeros(input.shape, dtype_t::INT8, input.device);
 
 	DISPATCH_ON_DTYPE_CPU_BACKEND(input.dtype, pool_forward_kernel(
 		(T*) output.data_ptr(),
-		(half*) max_mask.data_ptr(),
+		(int8_t*) max_mask.data_ptr(),
 		(const T*) input.data_ptr(),
 		input_height,
 		input_width,
@@ -80,7 +80,7 @@ template<typename T>
 void pool_backward_kernel(
 	T* input_grad,
 	const T* output_grad,
-	const half* max_mask,
+	const int8_t* max_mask,
 	int64_t input_height,
 	int64_t input_width,
 	int64_t pool_size,
@@ -121,7 +121,7 @@ Tensor pool_backward(const Tensor &output_grad, const Tensor &max_mask, int pool
 	DISPATCH_ON_DTYPE_CPU_BACKEND(output_grad.dtype, pool_backward_kernel(
 		(T*) input_grad.data_ptr(),
 		(const T*) output_grad.data_ptr(),
-		(const half*) max_mask.data_ptr(),
+		(const int8_t*) max_mask.data_ptr(),
 		input_height,
 		input_width,
 		pool_size,
