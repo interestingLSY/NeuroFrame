@@ -2,13 +2,25 @@
 
 A tiny framework for AI training and inference. My homework for the course "programming in AI".
 
-## Build
+## Installation
+
+First, clone this repo:
 
 ```bash
 git clone https://github.com/interestingLSY/NeuroFrame.git
 cd NeuroFrame
-cmake -B build
-cmake --build build -j8
+```
+
+You can start with a conda environment via:
+
+```bash
+conda create --name neuroframe --file packages.txt
+```
+
+Then you can install NeuroFrame by:
+
+```bash
+pip install -e .
 ```
 
 ## Code Structure
@@ -25,6 +37,8 @@ The code is organized as follows:
 	`backend` folder is further divided into `cpu` and `cuda` folders, which contain
 	the CPU and CUDA implementations of the operators, respectively.
 - The `example` folder contains some examples.
+- The `unittest` folder contains unittests for `op`s.
+- The `pybind` folder contains the Python bindings.
 
 ## Design Philosophy
 
@@ -148,4 +162,4 @@ write `relu(x)`, and NeuroFrame will do the rest (including dispatching to devic
 calling kernels, and modifying the computation graph) for you. Under some 
 circumstances (like NeuroFrame's unit tests), you may want to manually invoke
 the underlying forward and backward functions without disrupting the computation
-graph. In this case, you can use 
+graph. In this case, you can use `XXX_forward_manual()` and `XXX_backward_manual()`.
