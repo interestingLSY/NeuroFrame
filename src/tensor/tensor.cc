@@ -4,6 +4,8 @@
 
 #include "src/basic/random.h"
 #include "src/op/tensor_eq.h"
+#include "src/op/tensor_unary_op.h"
+#include "src/op/tensor_binary_op.h"
 
 namespace NeuroFrame {
 
@@ -138,18 +140,20 @@ Tensor Tensor::cuda(int device_index) const {
 }
 
 
-void Tensor::print(int64_t max_display_per_dim /* default: 16 */, bool in_compat_stype /* default: false*/) const {
-	printf("Tensor(");
+std::string Tensor::to_string(int64_t max_display_per_dim /* default: 16 */, bool in_compat_style /* default: false*/) const {
+	std::string result = "Tensor(";
 	if (shape.empty()) {
 		if (this->device.type != device_type_t::CPU) {
 			Tensor t = this->to(Device::cpu());
 			// Scalar tensor
 			Scalar s = t.as_scalar();
-			printf("%s (scalar)", s.to_string().c_str());
+			result += s.to_string();
+			result += " (scalar)";
 		} else {
 			// Scalar tensor
 			Scalar s = this->as_scalar();
-			printf("%s (scalar)", s.to_string().c_str());
+			result += s.to_string();
+			result += " (scalar)";
 		}
 	} else {
 		// Non-scalar tensor
@@ -157,49 +161,62 @@ void Tensor::print(int64_t max_display_per_dim /* default: 16 */, bool in_compat
 			if (cur_dim == (int)shape.size()) {
 				// We have reached the last dimension
 				Scalar s = this->get_elem(pos).as_scalar();
-				printf("%s", s.to_string().c_str());
+				result += s.to_string();
 			} else {
 				// We have not reached the last dimension
-				printf("[");
+				result += "[";
 				for (int64_t i = 0; i < shape[cur_dim]; ++i) {
 					if (i != 0) {
-						printf(", ");
+						result += ", ";
 					}
-					if (cur_dim != (int)shape.size() - 1 && !in_compat_stype) {
-						printf("\n");
+					if (cur_dim != (int)shape.size() - 1 && !in_compat_style) {
+						result += "\n";
 						for (int j = 0; j < cur_dim + 1; ++j) {
-							printf("  ");
+							result += "  ";
 						}
 					}
 					std::vector<int64_t> new_pos = pos;
 					new_pos.push_back(i);
 					print_helper(cur_dim + 1, new_pos);
 					if (i == max_display_per_dim - 1 && i != shape[cur_dim] - 1) {
-						printf(", ...");
+						result += ", ...";
 						break;
 					}
 				}
-				printf("]");
+				result += "]";
 			}
 		};
 		print_helper(0, {});
-		printf(", shape=[");
+		result += ", shape=[";
 		for (int i = 0; i < (int)shape.size(); ++i) {
-			printf("%ld", shape[i]);
+			result += std::to_string(shape[i]);
 			if (i != (int)shape.size() - 1) {
-				printf(", ");
+				result += ", ";
 			}
 		}
-		printf("], stride=[");
+		result += "], stride=[";
 		for (int i = 0; i < (int)stride.size(); ++i) {
-			printf("%ld", stride[i]);
+			result += std::to_string(stride[i]);
 			if (i != (int)stride.size() - 1) {
-				printf(", ");
+				result += ", ";
 			}
 		}
-		printf("]");
+		result += "]";
 	}
-	printf(", device=%s, dtype=%s)\n", device.to_string().c_str(), dtype2string(dtype).c_str());
+	result += ", device=";
+	result += device.to_string();
+	result += ", dtype=";
+	result += dtype2string(dtype);
+	result += ")";
+	return result;
+}
+
+std::string Tensor::repr() const {
+	return "<Tensor " + this->to_string() + ">";
+}
+
+void Tensor::print(int64_t max_display_per_dim /* default: 16 */, bool in_compat_style /* default: false*/) const {
+	printf("%s", this->to_string(max_display_per_dim, in_compat_style).c_str());
 }
 
 Tensor::Tensor(const std::vector<int64_t> &shape, dtype_t dtype, Device device):
@@ -232,7 +249,7 @@ Tensor Tensor::randu(const std::vector<int64_t> &shape, dtype_t dtype, Device de
 	double low_d = low.as_double();
 	double high_d = high.as_double();
 	int64_t numel = ret_cpu.numel();
-	#pragma omp parallel for schedule(static)
+	// #pragma omp parallel for schedule(static)	Disabled since it may introduce non-determinism
 	for (int64_t i = 0; i < numel; ++i) {
 		double x = std::uniform_real_distribution<double>(low_d, high_d)(mt19937_64_engine);
 		Scalar s(x, dtype);
@@ -252,7 +269,7 @@ Tensor Tensor::randint(const std::vector<int64_t> &shape, dtype_t dtype, Device 
 	int64_t low_d = low.as_int64();
 	int64_t high_d = high.as_int64();
 	int64_t numel = ret_cpu.numel();
-	#pragma omp parallel for schedule(static)
+	// #pragma omp parallel for schedule(static) Disabled since it may introduce non-determinism
 	for (int64_t i = 0; i < numel; ++i) {
 		int64_t x = std::uniform_int_distribution<int64_t>(low_d, high_d)(mt19937_64_engine);
 		Scalar s(x, dtype);
@@ -262,7 +279,6 @@ Tensor Tensor::randint(const std::vector<int64_t> &shape, dtype_t dtype, Device 
 	return ret;
 }
 
-// template<typename T>
 Tensor Tensor::from_vector(const std::vector<Scalar> &data, const std::vector<int64_t> &shape, dtype_t dtype, Device device) {
 	Tensor ret_h(shape, dtype, Device::cpu());
 	int64_t numel = ret_h.numel();
@@ -270,7 +286,7 @@ Tensor Tensor::from_vector(const std::vector<Scalar> &data, const std::vector<in
 		LOG_FATAL("The number of elements in the data vector does not match the number of elements in the tensor");
 	}
 	for (int64_t i = 0; i < numel; ++i) {
-		Scalar s = data[i];
+		Scalar s = data[i].to_dtype(dtype);
 		s.save_to((char*)ret_h.mem_frag.ptr + i * get_dtype_size(dtype), dtype);
 	}
 	return ret_h.to(device);
@@ -278,6 +294,22 @@ Tensor Tensor::from_vector(const std::vector<Scalar> &data, const std::vector<in
 
 bool Tensor::operator==(const Tensor &other) const {
 	return tensor_eq(*this, other);
+}
+
+bool Tensor::operator!=(const Tensor &other) const {
+	return !tensor_eq(*this, other);
+}
+
+Tensor Tensor::operator+(const Tensor &other) const {
+	return tensor_add(*this, other);
+}
+
+Tensor Tensor::operator-(const Tensor &other) const {
+	return tensor_sub(*this, other);
+}
+
+Tensor Tensor::operator-() const {
+	return tensor_negate(*this);
 }
 
 }

@@ -23,6 +23,7 @@ public:
 	Device(device_type_t type, int device_index = 0);
 	void switch_to() const;
 	std::string to_string() const;
+	std::string repr() const;
 
 	inline static Device cpu() {
 		return Device(device_type_t::CPU);

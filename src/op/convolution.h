@@ -12,6 +12,6 @@ Tensor batched_convolution_forward_manual(const Tensor &input_img, const Tensor 
 
 std::vector<Tensor> batched_convolution_backward_manual(const Tensor &output_grad, const OpContext &ctx);
 
-Tensor batched_convolution(const Tensor &input, const Tensor &kernel, int64_t pool_size);
+Tensor batched_convolution(const Tensor &input, const Tensor &kernel);
 
 }

@@ -14,7 +14,7 @@ namespace NeuroFrame {
 //  - input: the input tensor, (batch_size, num_classes)
 //	- ground_truth: the ground truth, (batch_size)
 // Output:
-//  - result: the result tensor, (batch_size)
+//  - result: the result, ()
 // SavedContext:
 //  - saved_tensors[0]: the softmax result, (batch_size, num_classes)
 //  - saved_tensors[1]: the ground truth, (batch_size)
@@ -71,8 +71,8 @@ Tensor cross_entropy_loss_backward_manual(const Tensor &output_grad, const OpCon
 	return cross_entropy_loss_backward_func({output_grad}, ctx)[0];
 }
 
-Tensor cross_entropy_loss(const Tensor &input) {
-
+Tensor cross_entropy_loss(const Tensor &input, const Tensor &ground_truth) {
+	return perform_op(cross_entropy_loss_forward_func, cross_entropy_loss_backward_func, {input, ground_truth})[0];
 }
 
 }

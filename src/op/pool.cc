@@ -7,9 +7,9 @@ namespace NeuroFrame {
 
 // pool_forward_func: The forward function of pool operator.
 // Input:
-//	- input: The input tensor
+//	- input: The input tensor, (batch_size, height, weight)
 // Output:
-//	- result: The result tensor
+//	- result: The result tensor, (batch_size, height/pool_size, weight/pool_size)
 // SavedContext:
 //	- saved_tensors[0]: The max mask
 // OtherArgs: 8byte

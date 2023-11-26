@@ -29,7 +29,7 @@ void Device::switch_to() const {
 		cudaError_t err = cudaSetDevice(device_index);
 		if (err != cudaSuccess) {
 			print_cuda_error();
-			LOG_FATAL("Failed to switch to device %d", device_index);
+			LOG_FATAL("Failed to switch to device cuda:%d", device_index);
 		}
 	}
 }
@@ -44,5 +44,8 @@ std::string Device::to_string() const {
 	}
 }
 
+std::string Device::repr() const {
+	return "<Device " + this->to_string() + ">";
+}
 
 }

@@ -27,11 +27,20 @@ static op_forward_func_t matmul_forward_func = [](const std::vector<Tensor> &inp
 	do_basic_checkings_in_forward_and_backward(input, ctx);
 	Tensor a = input[0];
 	Tensor b = input[1];
-	if (a.shape.size() != 2 || b.shape.size() != 2) {
-		LOG_FATAL("matmul_forward_func: input tensors must be 2D");
+	if ((a.shape.size() != 2 && a.shape.size() != 3) || 
+		(b.shape.size() != 2 && b.shape.size() != 3)) {
+		LOG_FATAL("matmul_forward_func: input tensors must be 2D or 3D");
 	}
-	if (a.shape[transpose_a ? 0 : 1] != b.shape[transpose_b ? 1 : 0]) {
-		LOG_FATAL("matmul_forward_func: input tensors' shapes are not compatible");
+
+	bool is_a_batched = a.shape.size() == 3;
+	bool is_b_batched = b.shape.size() == 3;
+	if (a.shape[(int)is_a_batched + (transpose_a ? 0 : 1)] !=
+		b.shape[(int)is_b_batched + (transpose_b ? 1 : 0)]) {
+		LOG_FATAL("matmul_forward_func: input tensors' shapes are not compatible (inner dimensions do not match)");
+	}
+	if (is_a_batched && is_b_batched &&
+		a.shape[0] != b.shape[0]) {
+		LOG_FATAL("matmul_forward_func: input tensors' shapes are not compatible (batch sizes do not match)");
 	}
 	
 	ctx.save_for_backward(a);
@@ -40,7 +49,7 @@ static op_forward_func_t matmul_forward_func = [](const std::vector<Tensor> &inp
 
 	Tensor result = DISPATCH_TO_BACKEND(
 		a.device.type,
-		matmul(a, b, transpose_a, transpose_b)
+		batched_matmul(a, b, transpose_a, transpose_b)
 	);
 	return {result};
 };
@@ -62,6 +71,12 @@ static op_backward_func_t matmul_backward_func = [](const std::vector<Tensor> &o
 	MatmulArgs args = *(MatmulArgs*)ctx.get_saved_args();
 	bool transpose_a = args.transpose_a;
 	bool transpose_b = args.transpose_b;
+	bool is_a_batched = a.shape.size() == 3;
+	bool is_b_batched = b.shape.size() == 3;
+
+	if (is_a_batched || is_b_batched) {
+		LOG_FATAL("matmul_backward_func: batched matmul is not supported yet");
+	}
 
 	Tensor a_grad = [&]() {
 		if (!transpose_a) {

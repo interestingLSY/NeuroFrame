@@ -113,6 +113,46 @@ int64_t Scalar::as_int64() const {
 	}
 }
 
+Scalar Scalar::to_dtype(dtype_t target_dtype) const {
+	if (is_float_family()) {
+		if (NeuroFrame::is_float_family(target_dtype)) {
+			return Scalar(x.f, target_dtype);
+		} else if (NeuroFrame::is_int_family(target_dtype)) {
+			if (target_dtype == dtype_t::INT8) {
+				return Scalar((int8_t)x.f);
+			} else if (target_dtype == dtype_t::INT16) {
+				return Scalar((int16_t)x.f);
+			} else if (target_dtype == dtype_t::INT32) {
+				return Scalar((int32_t)x.f);
+			} else if (target_dtype == dtype_t::INT64) {
+				return Scalar((int64_t)x.f);
+			} else {
+				LOG_FATAL("Unknown dtype");
+			}
+		} else {
+			LOG_FATAL("Unknown dtype");
+		}
+	} else if (is_int_family()) {
+		if (NeuroFrame::is_int_family(target_dtype)) {
+			return Scalar(x.i, target_dtype);
+		} else if (NeuroFrame::is_float_family(target_dtype)) {
+			if (target_dtype == dtype_t::FLOAT16) {
+				return Scalar((half)(double)x.i);
+			} else if (target_dtype == dtype_t::FLOAT32) {
+				return Scalar((float)x.i);
+			} else if (target_dtype == dtype_t::FLOAT64) {
+				return Scalar((double)x.i);
+			} else {
+				LOG_FATAL("Unknown dtype");
+			}
+		} else {
+			LOG_FATAL("Unknown dtype");
+		}
+	} else {
+		LOG_FATAL("Unknown dtype");
+	}
+}
+
 void Scalar::save_to(void* ptr, dtype_t target_dtype) const {
 	if (is_float_family()) {
 		if (!NeuroFrame::is_float_family(target_dtype)) {
@@ -157,6 +197,10 @@ std::string Scalar::to_string() const {
 	}
 }
 
+std::string Scalar::repr() const {
+	return "<Scalar " + dtype2string(this->dtype) + " = " + this->to_string() + ">";
+}
+
 bool Scalar::operator==(const Scalar &other) const {
 	if (dtype != other.dtype) {
 		return false;
@@ -168,6 +212,10 @@ bool Scalar::operator==(const Scalar &other) const {
 	} else {
 		LOG_FATAL("Unknown dtype");
 	}
+}
+
+bool Scalar::operator!=(const Scalar &other) const {
+	return !(*this == other);
 }
 
 }

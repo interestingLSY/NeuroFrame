@@ -102,12 +102,16 @@ public:
 	// Retrieve the value as int64_t
 	int64_t as_int64() const;
 
+	Scalar to_dtype(dtype_t target_dtype) const;
+
 	// Save the value to a pointer, which has dtype = target_dtype
 	void save_to(void* ptr, dtype_t target_dtype) const;
 
 	std::string to_string() const;
+	std::string repr() const;
 
 	bool operator==(const Scalar &other) const;
+	bool operator!=(const Scalar &other) const;
 };
 
 }

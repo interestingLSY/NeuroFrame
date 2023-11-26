@@ -5,6 +5,14 @@
 
 namespace NeuroFrame {
 
+// relu: The relu activation function
+// Input:
+//	- input: The input tensor, (N)
+// Output:
+//	- result: The result tensor, (N)
+// SavedContext:
+//	- saved_tensors[0]: The input tensor
+// OtherArgs: None
 static op_forward_func_t relu_forward_func = [](const std::vector<Tensor> &input, OpContext &ctx, void* other_args) -> std::vector<Tensor> {
 	do_basic_checkings_in_forward_and_backward(input, ctx);
 	ctx.save_for_backward(input[0]);	// Save the input tensor for backward pass

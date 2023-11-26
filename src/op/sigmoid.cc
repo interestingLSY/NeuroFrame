@@ -5,6 +5,14 @@
 
 namespace NeuroFrame {
 
+// sigmoid: The sigmoid activation function
+// Input:
+//	- input: The input tensor, (N)
+// Output:
+//	- result: The result tensor, (N)
+// SavedContext:
+//	- saved_tensors[0]: The output tensor
+// OtherArgs: None
 static op_forward_func_t sigmoid_forward_func = [](const std::vector<Tensor> &input, OpContext &ctx, void* other_args) -> std::vector<Tensor> {
 	do_basic_checkings_in_forward_and_backward(input, ctx);
 	Tensor result = DISPATCH_TO_BACKEND(

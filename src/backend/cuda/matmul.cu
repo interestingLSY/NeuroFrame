@@ -42,6 +42,11 @@ cublasComputeType_t get_cublas_compute_type() {
 	}
 }
 
+// cublas_gemm_strided_batched: Calculate C[i] = A[i] x B[i], where A, B and C are
+// arrays of matrices.
+// Although it accepts tensors as input, it does not care about its shape. It
+// only treats them as a bunch of numbers, i.e. only data_ptr and numel are used.
+// All input arrays are in ROW-MAJOR order.
 static void cublas_gemm_strided_batched(
 	int m,
 	int n,
@@ -90,10 +95,6 @@ static void cublas_gemm_strided_batched(
 	}());
 }
 
-// cublas_gemm_batched: Calculate C[i] = A[i] x B[i], where A, B and C are
-// arrays of matrices.
-// Although it accepts tensors as input, it does not care about its shape. It
-// only treats them as a bunch of numbers, i.e. only data_ptr and numel are used.
 static void cublas_gemm_batched(
 	int m,
 	int n,

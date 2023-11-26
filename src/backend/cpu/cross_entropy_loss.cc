@@ -11,14 +11,16 @@ namespace NeuroFrame::Backend::CPU {
 // batched_softmax_cross_entropy_loss_forward_kernel: Compute the softmax and apply cross entropy loss
 template<typename T>
 void batched_softmax_cross_entropy_loss_forward_kernel(
-	T* __restrict__ loss_result,			// (batch_size)
+	T* __restrict__ loss_result,			// ()
 	T* __restrict__ softmax_output,			// (batch_size, num_classes)
 	const T* __restrict__ answer,	// (batch_size, num_classes)
 	const int32_t* ground_truth,	// (batch_size)
 	int64_t batch_size,
 	int64_t num_classes
 ) {
-	#pragma omp parallel for schedule(static)
+	typedef std::conditional_t<std::is_same_v<T, half>, float, T> reduction_t;	// Reduce in float if T is half since OMP does not support half reduction
+	reduction_t my_loss_result = (reduction_t)0.;
+	#pragma omp parallel for schedule(static) reduction(+:my_loss_result)
 	for (int64_t batch_id = 0; batch_id < batch_size; ++batch_id) {
 		const T* my_answer = answer + batch_id*num_classes;
 		T* my_softmax_output = softmax_output + batch_id*num_classes;
@@ -41,8 +43,9 @@ void batched_softmax_cross_entropy_loss_forward_kernel(
 			my_softmax_output[i] = my_softmax_output[i] / sum;
 		}
 
-		loss_result[batch_id] = -std::log(my_softmax_output[ground_truth[batch_id]]);
+		my_loss_result += (reduction_t)-std::log(my_softmax_output[ground_truth[batch_id]]);
 	}
+	*loss_result = (T)(my_loss_result / (reduction_t)batch_size);
 }
 
 // batched_softmax_cross_entropy_loss_forward: Compute the softmax and apply cross entropy loss
@@ -62,7 +65,7 @@ std::pair<Tensor, Tensor> batched_softmax_cross_entropy_loss_forward(const Tenso
 	int64_t batch_size = answer.shape[0];
 	int64_t num_classes = answer.shape[1];
 
-	Tensor loss_result({batch_size}, answer.dtype, answer.device);
+	Tensor loss_result({}, answer.dtype, answer.device);
 	Tensor softmax_output({batch_size, num_classes}, answer.dtype, answer.device);
 
 	DISPATCH_ON_DTYPE_CPU_BACKEND(answer.dtype, batched_softmax_cross_entropy_loss_forward_kernel(

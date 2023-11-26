@@ -80,7 +80,9 @@ public:
 	// The same as `to(Device::cuda(device_index))`
 	Tensor cuda(int device_index = 0) const;
 	
-	void print(int64_t max_display_per_dim = 16, bool in_compat_stype = false) const;
+	std::string to_string(int64_t max_display_per_dim = 16, bool in_compat_style = false) const;
+	std::string repr() const;
+	void print(int64_t max_display_per_dim = 16, bool in_compat_style = false) const;
 
 	// The following functions generate a tensor with the given shape, dtype and device
 	// Do not fill
@@ -97,6 +99,11 @@ public:
 	static Tensor from_vector(const std::vector<Scalar> &data, const std::vector<int64_t> &shape, dtype_t dtype, Device device);
 
 	bool operator==(const Tensor &other) const;
+	bool operator!=(const Tensor &other) const;
+
+	Tensor operator+(const Tensor &other) const;
+	Tensor operator-(const Tensor &other) const;
+	Tensor operator-() const;
 };
 
 }

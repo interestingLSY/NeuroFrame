@@ -129,8 +129,8 @@ std::vector<Tensor> batched_convolution_backward_manual(const Tensor &output_gra
 	return batched_convolution_backward_func({output_grad}, ctx);
 }
 
-Tensor batched_convolution(const Tensor &input, const Tensor &kernel, int64_t pool_size) {
-	return perform_op(batched_convolution_forward_func, batched_convolution_backward_func, {input, kernel}, &pool_size)[0];
+Tensor batched_convolution(const Tensor &input, const Tensor &kernel) {
+	return perform_op(batched_convolution_forward_func, batched_convolution_backward_func, {input, kernel})[0];
 }
 
 }

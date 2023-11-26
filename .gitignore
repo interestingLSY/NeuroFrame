@@ -12,3 +12,8 @@ install_manifest.txt
 compile_commands.json
 CTestTestfile.cmake
 _deps
+
+*.egg-info
+/neuroframe.cpython-311-x86_64-linux-gnu.so
+/out
+/dist
