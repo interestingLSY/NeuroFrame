@@ -1,4 +1,4 @@
-#include "tensor_binary_op.h"
+#include "tensor_unary_op.h"
 
 #include <stdexcept>
 #include <cuda_runtime.h>

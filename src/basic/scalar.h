@@ -54,13 +54,14 @@ constexpr size_t MAX_DTYPE_SIZE = 8;
 
 // Scalar: The abstraction of a scalar, which can be in different dtypes
 class Scalar {
-	dtype_t dtype;
 	union x_t {
 		double f;
 		int64_t i;
 	} x;
 
 public:
+	dtype_t dtype;
+	
 	// Create a scalar from a pointer and a dtype
 	Scalar(void* ptr, dtype_t dtype);
 
@@ -101,6 +102,10 @@ public:
 
 	// Retrieve the value as int64_t
 	int64_t as_int64() const;
+
+	// Retrieve the value as C type
+	template<typename T>
+	T to_c_dtype() const;
 
 	Scalar to_dtype(dtype_t target_dtype) const;
 

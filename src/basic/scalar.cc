@@ -113,6 +113,27 @@ int64_t Scalar::as_int64() const {
 	}
 }
 
+template<typename T>
+T Scalar::to_c_dtype() const {
+	if constexpr (std::is_same_v<T, half>) {
+		return is_float_family() ? (half)x.f : (half)x.i;
+	} else if constexpr (std::is_same_v<T, float>) {
+		return is_float_family() ? (float)x.f : (float)x.i;
+	} else if constexpr (std::is_same_v<T, double>) {
+		return is_float_family() ? x.f : (double)x.i;
+	} else if constexpr (std::is_same_v<T, int8_t>) {
+		return is_int_family() ? (int8_t)x.i : (int8_t)x.f;
+	} else if constexpr (std::is_same_v<T, int16_t>) {
+		return is_int_family() ? (int16_t)x.i : (int16_t)x.f;
+	} else if constexpr (std::is_same_v<T, int32_t>) {
+		return is_int_family() ? (int32_t)x.i : (int32_t)x.f;
+	} else if constexpr (std::is_same_v<T, int64_t>) {
+		return is_int_family() ? x.i : (int64_t)x.f;
+	} else {
+		LOG_FATAL("Unknown dtype");
+	}
+}
+
 Scalar Scalar::to_dtype(dtype_t target_dtype) const {
 	if (is_float_family()) {
 		if (NeuroFrame::is_float_family(target_dtype)) {
