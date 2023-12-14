@@ -38,7 +38,7 @@ void init_tensor(pybind11::module& m) {
 		.def("__repr__", &Tensor::repr)
 		.def("print", &Tensor::print, "max_display_per_dim"_a = 16, "in_compat_style"_a = false)
 
-		.def("__init__", [](Tensor& instance, const std::vector<int64_t>& shape, NeuroFrame::dtype_t dtype, const NeuroFrame::Device& device) {
+		.def("empty", [](Tensor& instance, const std::vector<int64_t>& shape, NeuroFrame::dtype_t dtype, const NeuroFrame::Device& device) {
 			new (&instance) Tensor(shape, dtype, device);
 		})
 		.def_static("zeros", &Tensor::zeros, "shape"_a, "dtype"_a, "device"_a)
@@ -58,5 +58,27 @@ void init_tensor(pybind11::module& m) {
 		.def("__init__", [](Tensor& instance, const std::vector<double> &data, const std::vector<int64_t>& shape, NeuroFrame::dtype_t dtype, const NeuroFrame::Device& device) {
 			std::vector<NeuroFrame::Scalar> scalars = std::vector<NeuroFrame::Scalar>(data.begin(), data.end());
 			new (&instance) Tensor(Tensor::from_vector(scalars, shape, dtype, device));
+		})
+
+		// Construct from numpy array
+		.def("__init__", [](Tensor &instance, pybind11::array_t<double> &array, NeuroFrame::dtype_t dtype, const NeuroFrame::Device& device) {
+			printf("ADSDASD\n");
+			// Retrieve the shape
+			std::vector<int64_t> shape;
+			for (int i = 0; i < array.ndim(); ++i) {
+				shape.push_back(array.shape(i));
+			}
+
+			// Dump data to vector
+			int64_t numel = array.size();
+			std::vector<NeuroFrame::Scalar> data;
+			pybind11::array_t<double> array_1d = array.reshape({numel});
+			auto accessor = array_1d.unchecked<1>();
+			for (int i = 0; i < array.size(); ++i) {
+				data.push_back(NeuroFrame::Scalar(accessor(i)));
+			}
+
+			// Construct
+			new (&instance) Tensor(Tensor::from_vector(data, shape, dtype, device));
 		});
 }
