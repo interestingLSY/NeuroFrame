@@ -3,7 +3,7 @@
 #include <cuda_fp16.h>
 
 #include "utils.h"
-#include "src/backend/utils.h"	// For HALF_ABS_THRES, HALF_REL_THRES, etc.
+#include "src/utils/utils.h"	// For HALF_ABS_THRES, HALF_REL_THRES, etc.
 
 namespace NeuroFrame::Backend::CPU {
 

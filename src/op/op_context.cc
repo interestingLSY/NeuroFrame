@@ -32,4 +32,8 @@ std::vector<Tensor> OpContext::get_saved_tensors() const {
 	return saved_tensors;
 }
 
+Tensor OpContext::get_saved_tensor(int64_t index) const {
+	return saved_tensors[index];
+}
+
 }

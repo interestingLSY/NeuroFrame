@@ -3,8 +3,10 @@
 #include "omp.h"
 
 #include "src/tensor/tensor.h"
-#include "utils.h"
 #include "src/basic/log.h"
+
+#include "utils.h"
+#include "../utils.h"
 
 namespace NeuroFrame::Backend::CPU {
 
@@ -35,5 +37,7 @@ Tensor name(const Tensor &input) {\
 }
 
 DEFINE_UNARY_OP(tensor_negate, [](T a) -> T { return -a; })
+
+DEFINE_UNARY_OP(tensor_inv, [](T a) -> T { return (T)1.0/a; })
 
 }

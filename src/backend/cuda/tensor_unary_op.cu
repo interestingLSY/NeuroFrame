@@ -6,18 +6,23 @@
 
 #include "src/tensor/tensor.h"
 #include "src/basic/log.h"
+
 #include "utils.h"
+#include "../utils.h"
 
 namespace NeuroFrame::Backend::CUDA {
 
 enum class UNARY_OP_TYPE {
-	NEGATE
+	NEGATE,
+	INV
 };
 
 template <typename T, UNARY_OP_TYPE OP_TYPE>
 __device__ __forceinline__ T perform_unary_op(const T &a) {
 	if constexpr (OP_TYPE == UNARY_OP_TYPE::NEGATE) {
 		return -a;
+	} else if constexpr (OP_TYPE == UNARY_OP_TYPE::INV) {
+		return (T)1.0 / a;
 	}
 }
 
@@ -55,6 +60,8 @@ Tensor name(const Tensor &input) {\
 }
 
 DEFINE_UNARY_OP(tensor_negate, UNARY_OP_TYPE::NEGATE)
+
+DEFINE_UNARY_OP(tensor_inv, UNARY_OP_TYPE::INV)
 
 
 }

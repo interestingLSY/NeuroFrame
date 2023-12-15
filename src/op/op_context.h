@@ -23,6 +23,8 @@ public:
 	void save_for_backward(const Tensor &tensor);
 	
 	std::vector<Tensor> get_saved_tensors() const;
+
+	Tensor get_saved_tensor(int64_t index) const;
 };
 
 }

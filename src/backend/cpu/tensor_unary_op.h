@@ -6,4 +6,6 @@ namespace NeuroFrame::Backend::CPU {
 
 Tensor tensor_negate(const Tensor &input);
 
+Tensor tensor_inv(const Tensor &input);
+
 }
