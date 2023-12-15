@@ -31,9 +31,15 @@ void init_ops(pybind11::module& m) {
 
 	ops_m.def("tensor_sub", &NeuroFrame::tensor_sub, "a"_a, "b"_a);
 
+	ops_m.def("tensor_mul", &NeuroFrame::tensor_mul, "a"_a, "b"_a);
+
+	ops_m.def("tensor_div", &NeuroFrame::tensor_div, "a"_a, "b"_a);
+
 	ops_m.def("tensor_eq", &NeuroFrame::tensor_eq, "a"_a, "b"_a);
 
 	ops_m.def("tensor_negate", &NeuroFrame::tensor_negate, "a"_a);
+
+	ops_m.def("tensor_inv", &NeuroFrame::tensor_inv, "a"_a);
 
 	ops_m.def("transpose", &NeuroFrame::transpose, "input"_a);
 }

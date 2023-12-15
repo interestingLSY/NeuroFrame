@@ -62,7 +62,6 @@ void init_tensor(pybind11::module& m) {
 
 		// Construct from numpy array
 		.def("__init__", [](Tensor &instance, pybind11::array_t<double> &array, NeuroFrame::dtype_t dtype, const NeuroFrame::Device& device) {
-			printf("ADSDASD\n");
 			// Retrieve the shape
 			std::vector<int64_t> shape;
 			for (int i = 0; i < array.ndim(); ++i) {
@@ -80,5 +79,26 @@ void init_tensor(pybind11::module& m) {
 
 			// Construct
 			new (&instance) Tensor(Tensor::from_vector(data, shape, dtype, device));
+		}, "array"_a, "dtype"_a = NeuroFrame::dtype_t::FLOAT32, "device"_a = NeuroFrame::Device::cpu())
+
+		// Convert to numpy array
+		// NOTE. It returns a pybind11::array_t<double> no matter what the dtype of the tensor is.
+		.def("numpy", [](Tensor &instance) {
+			// Dump data to vector
+			int64_t numel = instance.numel();
+			Tensor instance_1d = instance.reshape({numel});
+			std::vector<double> data;
+			for (int i = 0; i < numel; ++i) {
+				data.push_back(instance_1d.get_elem({i}).as_scalar().as_double());
+			}
+
+			// Construct the array
+			pybind11::array_t<double> array = pybind11::array_t<double>(numel);
+			auto accessor = array.mutable_unchecked<1>();
+			for (int i = 0; i < numel; ++i) {
+				accessor(i) = data[i];
+			}
+			array = array.reshape(instance.shape);
+			return array;
 		});
 }
