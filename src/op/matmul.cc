@@ -1,5 +1,7 @@
 #include "matmul.h"
 
+#include <cassert>
+
 #include "src/backend/cpu/matmul.h"
 #include "src/backend/cuda/matmul.h"
 
@@ -20,6 +22,7 @@ struct MatmulArgs {
 //	- 0: Matrix A
 //  - 1: Matrix B
 static op_forward_func_t matmul_forward_func = [](const std::vector<Tensor> &input, OpContext &ctx, void* other_args) -> std::vector<Tensor> {
+	assert(other_args);
 	MatmulArgs args = *(MatmulArgs*)other_args;
 	bool transpose_a = args.transpose_a;
 	bool transpose_b = args.transpose_b;

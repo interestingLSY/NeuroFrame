@@ -243,6 +243,14 @@ Tensor Tensor::zeros(const std::vector<int64_t> &shape, dtype_t dtype, Device de
 	return ret;
 }
 
+Tensor Tensor::fill(Scalar x, const std::vector<int64_t> &shape, dtype_t dtype, Device device) {
+	Tensor ret_h(shape, dtype, Device::cpu());
+	for (int64_t i = 0; i < ret_h.numel(); ++i) {
+		x.save_to((char*)ret_h.mem_frag.ptr + i * get_dtype_size(dtype), dtype);
+	}
+	return ret_h.to(device);
+}
+
 Tensor Tensor::randu(const std::vector<int64_t> &shape, dtype_t dtype, Device device,
 	Scalar low, Scalar high) {
 	Tensor ret_cpu(shape, dtype, Device::cpu());

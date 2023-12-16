@@ -87,8 +87,10 @@ public:
 	// The following functions generate a tensor with the given shape, dtype and device
 	// Do not fill
 	Tensor(const std::vector<int64_t> &shape, dtype_t dtype, Device device);
-	// Fill with zeros (the same as above, just with a different name)
+	// Fill with zeros
 	static Tensor zeros(const std::vector<int64_t> &shape, dtype_t dtype, Device device);
+	// Fill with the given number
+	static Tensor fill(Scalar x, const std::vector<int64_t> &shape, dtype_t dtype, Device device);
 	// Fill with uniform distribution between `low` and `high`
 	static Tensor randu(const std::vector<int64_t> &shape, dtype_t dtype, Device device, Scalar low, Scalar high);
 	// Fill with uniform distribution between -1 and +1

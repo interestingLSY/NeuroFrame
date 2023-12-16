@@ -1,5 +1,7 @@
 #include "pool.h"
 
+#include <cassert>
+
 #include "src/backend/cpu/pool.h"
 #include "src/backend/cuda/pool.h"
 
@@ -16,12 +18,13 @@ namespace NeuroFrame {
 //	- other_args[0]: int64_t, 8byte, The pool size
 
 struct PoolForwardArgs {
-	int pool_size;
+	int64_t pool_size;
 };
 
 static op_forward_func_t pool_forward_func = [](const std::vector<Tensor> &input, OpContext &ctx, void* other_args) -> std::vector<Tensor> {
 	do_basic_checkings_in_forward_and_backward(input, ctx);
 
+	assert(other_args);
 	PoolForwardArgs args = *(PoolForwardArgs*)other_args;
 	ctx.save_args(other_args, sizeof(PoolForwardArgs));
 

@@ -1,5 +1,6 @@
 #include "tensor_binary_op.h"
 
+#include <cmath>
 #include "omp.h"
 
 #include "src/tensor/tensor.h"
@@ -43,4 +44,13 @@ DEFINE_BINARY_OP(tensor_sub, [](T a, T b) -> T { return a - b; })
 DEFINE_BINARY_OP(tensor_mul, [](T a, T b) -> T { return a * b; })
 
 DEFINE_BINARY_OP(tensor_div, [](T a, T b) -> T { return a / b; })
+
+DEFINE_BINARY_OP(tensor_pow, [](T a, T b) -> T { 
+	if constexpr(std::is_same<T, half>::value) {
+		return (half)std::pow((float)a, (float)b);
+	} else {
+		return std::pow(a, b);
+	}
+})
+
 }

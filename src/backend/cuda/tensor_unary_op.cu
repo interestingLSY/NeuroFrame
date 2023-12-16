@@ -14,7 +14,9 @@ namespace NeuroFrame::Backend::CUDA {
 
 enum class UNARY_OP_TYPE {
 	NEGATE,
-	INV
+	INV,
+	EXP,
+	LOG
 };
 
 template <typename T, UNARY_OP_TYPE OP_TYPE>
@@ -23,6 +25,26 @@ __device__ __forceinline__ T perform_unary_op(const T &a) {
 		return -a;
 	} else if constexpr (OP_TYPE == UNARY_OP_TYPE::INV) {
 		return (T)1.0 / a;
+	} else if constexpr (OP_TYPE == UNARY_OP_TYPE::EXP) {
+		if constexpr (std::is_same_v<T, float>) {
+			return __expf(a);
+		} else if constexpr (std::is_same_v<T, double>) {
+			return exp(a);
+		} else if constexpr (std::is_same_v<T, half>) {
+			return (half)exp((float)a);
+		} else {
+			LOG_FATAL("Unsupported dtype");
+		}
+	} else if constexpr (OP_TYPE == UNARY_OP_TYPE::LOG) {
+		if constexpr (std::is_same_v<T, float>) {
+			return __logf(a);
+		} else if constexpr (std::is_same_v<T, double>) {
+			return log(a);
+		} else if constexpr (std::is_same_v<T, half>) {
+			return (half)log((float)a);
+		} else {
+			LOG_FATAL("Unsupported dtype");
+		}
 	}
 }
 
@@ -62,6 +84,10 @@ Tensor name(const Tensor &input) {\
 DEFINE_UNARY_OP(tensor_negate, UNARY_OP_TYPE::NEGATE)
 
 DEFINE_UNARY_OP(tensor_inv, UNARY_OP_TYPE::INV)
+
+DEFINE_UNARY_OP(tensor_exp, UNARY_OP_TYPE::EXP)
+
+DEFINE_UNARY_OP(tensor_log, UNARY_OP_TYPE::LOG)
 
 
 }

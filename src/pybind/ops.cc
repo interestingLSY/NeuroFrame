@@ -1,4 +1,6 @@
 #include "ops.h"
+
+#include <pybind11/stl.h>
 using namespace pybind11::literals;	// For "_a" suffix
 
 #include "src/op/convolution.h"
@@ -6,6 +8,7 @@ using namespace pybind11::literals;	// For "_a" suffix
 #include "src/op/matmul.h"
 #include "src/op/pool.h"
 #include "src/op/relu.h"
+#include "src/op/reshape.h"
 #include "src/op/sigmoid.h"
 #include "src/op/tensor_binary_op.h"
 #include "src/op/tensor_eq.h"
@@ -25,6 +28,8 @@ void init_ops(pybind11::module& m) {
 
 	ops_m.def("relu", &NeuroFrame::relu, "input"_a);
 
+	ops_m.def("reshape", &NeuroFrame::reshape, "input"_a, "shape"_a);
+
 	ops_m.def("sigmoid", &NeuroFrame::sigmoid, "input"_a);
 
 	ops_m.def("tensor_add", &NeuroFrame::tensor_add, "a"_a, "b"_a);
@@ -35,11 +40,17 @@ void init_ops(pybind11::module& m) {
 
 	ops_m.def("tensor_div", &NeuroFrame::tensor_div, "a"_a, "b"_a);
 
+	ops_m.def("tensor_pow", &NeuroFrame::tensor_pow, "a"_a, "b"_a);
+
 	ops_m.def("tensor_eq", &NeuroFrame::tensor_eq, "a"_a, "b"_a);
 
 	ops_m.def("tensor_negate", &NeuroFrame::tensor_negate, "a"_a);
 
 	ops_m.def("tensor_inv", &NeuroFrame::tensor_inv, "a"_a);
+
+	ops_m.def("tensor_exp", &NeuroFrame::tensor_exp, "a"_a);
+
+	ops_m.def("tensor_log", &NeuroFrame::tensor_log, "a"_a);
 
 	ops_m.def("transpose", &NeuroFrame::transpose, "input"_a);
 }

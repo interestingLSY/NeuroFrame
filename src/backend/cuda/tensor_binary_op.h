@@ -12,4 +12,6 @@ Tensor tensor_mul(const Tensor &input1, const Tensor &input2);
 
 Tensor tensor_div(const Tensor &input1, const Tensor &input2);
 
+Tensor tensor_pow(const Tensor &input1, const Tensor &input2);
+
 }

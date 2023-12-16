@@ -23,7 +23,7 @@ void init_tensor(pybind11::module& m) {
 		.def("numel", &Tensor::numel)
 		.def("data_ptr", &Tensor::data_ptr, pybind11::return_value_policy::reference)
 		.def("dim", &Tensor::dim)
-		.def("reshape", &Tensor::reshape)
+		// .def("reshape", &Tensor::reshape)	// Prevent the user from using this function since this function won't touch the computation graph
 
 		.def("get_elem_addr", &Tensor::get_elem_addr, pybind11::return_value_policy::reference)
 		.def("get_elem", &Tensor::get_elem)

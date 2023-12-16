@@ -1,5 +1,6 @@
 #include "tensor_binary_op.h"
 
+#include <cmath>
 #include "omp.h"
 
 #include "src/tensor/tensor.h"
@@ -39,5 +40,21 @@ Tensor name(const Tensor &input) {\
 DEFINE_UNARY_OP(tensor_negate, [](T a) -> T { return -a; })
 
 DEFINE_UNARY_OP(tensor_inv, [](T a) -> T { return (T)1.0/a; })
+
+DEFINE_UNARY_OP(tensor_exp, [](T a) -> T {
+	if constexpr(std::is_same<T, half>::value) {
+		return (half)std::exp((float)a);
+	} else {
+		return std::exp(a);
+	}
+})
+
+DEFINE_UNARY_OP(tensor_log, [](T a) -> T {
+	if constexpr(std::is_same<T, half>::value) {
+		return (half)std::log((float)a);
+	} else {
+		return std::log(a);
+	}
+})
 
 }

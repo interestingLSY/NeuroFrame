@@ -15,6 +15,7 @@ enum class BINARY_OP_TYPE {
 	SUB,
 	MUL,
 	DIV,
+	POW,
 };
 
 template <typename T, BINARY_OP_TYPE OP_TYPE>
@@ -27,6 +28,14 @@ __device__ __forceinline__ T perform_binary_op(const T &a, const T &b) {
 		return a * b;
 	} else if constexpr (OP_TYPE == BINARY_OP_TYPE::DIV) {
 		return a / b;
+	} else if constexpr (OP_TYPE == BINARY_OP_TYPE::POW) {
+		if constexpr (std::is_same_v<T, float>) {
+			return __powf(a, b);
+		} else if constexpr (std::is_same_v<T, double>) {
+			return pow(a, b);
+		} else {
+			return (T)__powf((float)a, (float)b);
+		}
 	}
 }
 
@@ -69,6 +78,7 @@ DEFINE_BINARY_OP(tensor_add, BINARY_OP_TYPE::ADD)
 DEFINE_BINARY_OP(tensor_sub, BINARY_OP_TYPE::SUB)
 DEFINE_BINARY_OP(tensor_mul, BINARY_OP_TYPE::MUL)
 DEFINE_BINARY_OP(tensor_div, BINARY_OP_TYPE::DIV)
+DEFINE_BINARY_OP(tensor_pow, BINARY_OP_TYPE::DIV)
 
 
 }
