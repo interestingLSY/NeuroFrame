@@ -48,4 +48,29 @@ std::string Device::repr() const {
 	return "<Device " + this->to_string() + ">";
 }
 
+Device Device::default_device = Device::cpu();
+
+std::vector<Device> Device::get_available_devices() {
+	std::vector<Device> devices;
+	devices.push_back(Device::cpu());
+	int device_count;
+	cudaError_t err = cudaGetDeviceCount(&device_count);
+	if (err != cudaSuccess) {
+		print_cuda_error();
+		LOG_FATAL("Failed to get CUDA device count");
+	}
+	for (int i = 0; i < device_count; ++i) {
+		devices.push_back(Device::cuda(i));
+	}
+	return devices;
+}
+
+Device Device::get_default_device() {
+	return default_device;
+}
+
+void Device::set_default_device(const Device &device) {
+	default_device = device;
+}
+
 }

@@ -6,7 +6,7 @@
 
 namespace NeuroFrame {
 
-Tensor reshape_forward_manual(const Tensor &input, OpContext &ctx);
+Tensor reshape_forward_manual(const Tensor &input, OpContext &ctx, const std::vector<int64_t> &shape);
 
 Tensor reshape_backward_manual(const Tensor &output_grad, const OpContext &ctx);
 

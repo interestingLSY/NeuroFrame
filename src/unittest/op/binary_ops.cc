@@ -9,6 +9,8 @@
 #include "src/tensor/tensor.h"
 #include "../utils.h"
 
+#include <cstdlib>
+
 #include "src/op/tensor_binary_op.h"
 
 using namespace NeuroFrame;
@@ -17,7 +19,8 @@ enum class binary_op_type_t {
 	ADD,
 	SUB,
 	MUL,
-	DIV
+	DIV,
+	POW
 };
 
 // Params: <binary_op_type_t, dtype_t, n>
@@ -30,8 +33,8 @@ TEST_P(BinaryOpTest, BinaryOpTest) {
 	Device device_h = Device::cpu();
 	Device device_d = Device::cuda();
 
-	Tensor input1_h = Tensor::randu({n}, dtype, device_h);
-	Tensor input2_h = Tensor::randu({n}, dtype, device_h);
+	Tensor input1_h = op_type == binary_op_type_t::POW ? Tensor::randu({n}, dtype, device_h, 0.5f, 1.0f) : Tensor::randu({n}, dtype, device_h);
+	Tensor input2_h = op_type == binary_op_type_t::POW ? Tensor::randu({n}, dtype, device_h, 0.5f, 1.0f) : Tensor::randu({n}, dtype, device_h);
 	Tensor input1_d = input1_h.to(device_d);
 	Tensor input2_d = input2_h.to(device_d);
 
@@ -41,6 +44,7 @@ TEST_P(BinaryOpTest, BinaryOpTest) {
 		op_type == binary_op_type_t::SUB ? tensor_sub_forward_manual(input1_h, input2_h, ctx_h) :
 		op_type == binary_op_type_t::MUL ? tensor_mul_forward_manual(input1_h, input2_h, ctx_h) :
 		op_type == binary_op_type_t::DIV ? tensor_div_forward_manual(input1_h, input2_h, ctx_h) :
+		op_type == binary_op_type_t::POW ? tensor_pow_forward_manual(input1_h, input2_h, ctx_h) :
 		Tensor::zeros({n}, dtype, device_h);
 	
 	OpContext ctx_d;
@@ -49,13 +53,14 @@ TEST_P(BinaryOpTest, BinaryOpTest) {
 		op_type == binary_op_type_t::SUB ? tensor_sub_forward_manual(input1_d, input2_d, ctx_d) :
 		op_type == binary_op_type_t::MUL ? tensor_mul_forward_manual(input1_d, input2_d, ctx_d) :
 		op_type == binary_op_type_t::DIV ? tensor_div_forward_manual(input1_d, input2_d, ctx_d) :
+		op_type == binary_op_type_t::POW ? tensor_pow_forward_manual(input1_d, input2_d, ctx_d) :
 		Tensor::zeros({n}, dtype, device_d);
 
 	ASSERT_TRUE(is_tensor_equal(output_h, output_d));
 }
 
 INSTANTIATE_TEST_SUITE_P(BinaryOpTest, BinaryOpTest, testing::Combine(
-	testing::Values(binary_op_type_t::ADD, binary_op_type_t::SUB, binary_op_type_t::MUL, binary_op_type_t::DIV),
+	testing::Values(binary_op_type_t::ADD, binary_op_type_t::SUB, binary_op_type_t::MUL, binary_op_type_t::DIV, binary_op_type_t::POW),
 	testing::Values(dtype_t::FLOAT16, dtype_t::FLOAT32, dtype_t::FLOAT64),
 	testing::Values(2, 10, 200, 100000)
 ));

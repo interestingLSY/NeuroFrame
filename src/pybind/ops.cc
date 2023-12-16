@@ -3,6 +3,7 @@
 #include <pybind11/stl.h>
 using namespace pybind11::literals;	// For "_a" suffix
 
+#include "src/op/broadcast.h"
 #include "src/op/convolution.h"
 #include "src/op/cross_entropy_loss.h"
 #include "src/op/matmul.h"
@@ -19,6 +20,8 @@ void init_ops(pybind11::module& m) {
 	auto ops_m = m.def_submodule("ops", "NeuroFrame operators");
 	
 	ops_m.def("batched_convolution", &NeuroFrame::batched_convolution, "input (BCHW)"_a, "kernel (C_out, C_in, H, W)"_a);
+
+	ops_m.def("broadcast_to", &NeuroFrame::broadcast_to, "input"_a, "target_shape"_a);
 
 	ops_m.def("cross_entropy_loss", &NeuroFrame::cross_entropy_loss, "input"_a, "ground_truth"_a);
 
@@ -52,5 +55,18 @@ void init_ops(pybind11::module& m) {
 
 	ops_m.def("tensor_log", &NeuroFrame::tensor_log, "a"_a);
 
-	ops_m.def("transpose", &NeuroFrame::transpose, "input"_a);
+	ops_m.def("transpose", [] (const NeuroFrame::Tensor &input, std::optional<int> axe1, std::optional<int> axe2) -> NeuroFrame::Tensor {
+		if (axe1.has_value() != axe2.has_value()) {
+			LOG_FATAL("Transpose: axe1 and axe2 must be both specified or both not specified");
+		}
+		if (axe1.has_value() && axe2.has_value()) {
+			return NeuroFrame::transpose(input, axe1.value(), axe2.value());
+		} else {
+			int64_t dim = input.dim();
+			if (dim < 2) {
+				LOG_FATAL("Cannot transpose a tensor with dim = %ld < 2", dim);
+			}
+			return NeuroFrame::transpose(input, dim-2, dim-1);
+		}
+	}, "input"_a, "axe1"_a = std::optional<int>(), "axe2"_a = std::optional<int>());
 }

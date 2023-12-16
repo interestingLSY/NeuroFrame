@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 #include <cuda_runtime_api.h>
 
@@ -39,6 +40,11 @@ public:
 	inline bool operator!=(const Device& other) const {
 		return !(*this == other);
 	}
+
+	static Device default_device;
+	static std::vector<Device> get_available_devices();
+	static Device get_default_device();
+	static void set_default_device(const Device &device);
 };
 
 }

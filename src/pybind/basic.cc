@@ -1,6 +1,8 @@
 #include "basic.h"
 using namespace pybind11::literals;	// For "_a" suffix
 
+#include <pybind11/stl.h>
+
 #include "src/basic/random.h"
 #include "src/basic/device.h"
 #include "src/basic/scalar.h"
@@ -15,7 +17,10 @@ void init_basic(pybind11::module& m) {
 		.def("__eq__", &NeuroFrame::Device::operator==)
 		.def("__ne__", &NeuroFrame::Device::operator!=)
 		.def_static("cpu", &NeuroFrame::Device::cpu)
-		.def_static("cuda", &NeuroFrame::Device::cuda, "device_index"_a = 0);
+		.def_static("cuda", &NeuroFrame::Device::cuda, "device_index"_a = 0)
+		.def_static("get_available_devices", &NeuroFrame::Device::get_available_devices)
+		.def_static("get_default_device", &NeuroFrame::Device::get_default_device)
+		.def_static("set_default_device", &NeuroFrame::Device::set_default_device, "device"_a);
 	
 	pybind11::enum_<NeuroFrame::dtype_t>(m, "dtype")
 		.value("float16", NeuroFrame::dtype_t::FLOAT16)

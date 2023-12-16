@@ -12,13 +12,23 @@
 
 namespace NeuroFrame::Backend::CUDA {
 
-constexpr int ELEMENT_WISE_KERNEL_BLOCK_SIZE = 256;
-constexpr int ELEMENT_WISE_KERNEL_MAX_GRID = 1024;
+constexpr int64_t ELEMENT_WISE_KERNEL_BLOCK_SIZE = 256;
+constexpr int64_t ELEMENT_WISE_KERNEL_MAX_GRID = 1024;
 
-inline int element_wise_kernel_get_num_grids(int64_t n, int64_t block_size = ELEMENT_WISE_KERNEL_BLOCK_SIZE) {
+// Some stuff for indexing into an 1-D array
+#define INDEX_2D(dim1, dim2, index1, index2) \
+    (((int64_t)index1) * (dim2) + (index2))
+#define INDEX_3D(dim1, dim2, dim3, index1, index2, index3) \
+    (((int64_t)index1) * (dim2) * (dim3) + ((int64_t)index2) * (dim3) + (index3))
+#define INDEX_4D(dim1, dim2, dim3, dim4, index1, index2, index3, index4) \
+    (((int64_t)index1) * (dim2) * (dim3) * (dim4) + ((int64_t)index2) * (dim3) * (dim4) + ((int64_t)index3) * (dim4) + (index4))
+#define INDEX_5D(dim1, dim2, dim3, dim4, dim5, index1, index2, index3, index4, index5) \
+    (((int64_t)index1) * (dim2) * (dim3) * (dim4) * (dim5) + ((int64_t)index2) * (dim3) * (dim4) * (dim5) + ((int64_t)index3) * (dim4) * (dim5) + (index4) * (dim5) + (index5))
+
+inline int64_t element_wise_kernel_get_num_grids(int64_t n, int64_t block_size = ELEMENT_WISE_KERNEL_BLOCK_SIZE) {
 	return std::min(
 		ELEMENT_WISE_KERNEL_MAX_GRID,
-		(int)((n+block_size-1) / block_size)
+		(n+block_size-1) / block_size
 	);
 }
 

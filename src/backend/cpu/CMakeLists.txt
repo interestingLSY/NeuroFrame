@@ -1,4 +1,5 @@
 add_library(neuroframe_backend_cpu STATIC
+	broadcast.cc
 	relu.cc
 	sigmoid.cc
 	tensor_eq.cc

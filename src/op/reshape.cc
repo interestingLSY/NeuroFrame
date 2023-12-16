@@ -30,11 +30,11 @@ static op_backward_func_t reshape_backward_func = [](const std::vector<Tensor> &
 	return {result};
 };
 
-Tensor reshape_forward_manual(const Tensor &input, const std::vector<int64_t> &shape, OpContext &ctx) {
+Tensor reshape_forward_manual(const Tensor &input, OpContext &ctx, const std::vector<int64_t> &shape) {
 	return reshape_forward_func({input}, ctx, (void*)&shape)[0];
 }
 
-Tensor reshape_backward_manual(const Tensor &output_grad, const std::vector<int64_t> &shape, const OpContext &ctx) {
+Tensor reshape_backward_manual(const Tensor &output_grad, const OpContext &ctx) {
 	return reshape_backward_func({output_grad}, ctx)[0];
 }
 

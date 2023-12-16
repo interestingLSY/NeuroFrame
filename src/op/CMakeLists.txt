@@ -2,7 +2,9 @@ add_library(neuroframe_op STATIC
 	op.cc
 	op_context.cc
 	op_utils.cc
+	broadcast.cc
 	relu.cc
+	reshape.cc
 	sigmoid.cc
 	tensor_eq.cc
 	transpose.cc

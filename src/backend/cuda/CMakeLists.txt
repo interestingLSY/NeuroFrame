@@ -1,4 +1,5 @@
 add_library(neuroframe_backend_cuda STATIC
+	broadcast.cu
 	relu.cu
 	sigmoid.cu
 	tensor_eq.cu
