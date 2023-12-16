@@ -10,6 +10,7 @@ add_library(neuroframe_op STATIC
 	transpose.cc
 	matmul.cc
 	tensor_binary_op.cc
+	tensor_scalar_op.cc
 	tensor_unary_op.cc
 	pool.cc
 	cross_entropy_loss.cc

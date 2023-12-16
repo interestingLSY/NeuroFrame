@@ -13,9 +13,11 @@ using namespace pybind11::literals;	// For "_a" suffix
 #include "src/op/sigmoid.h"
 #include "src/op/tensor_binary_op.h"
 #include "src/op/tensor_eq.h"
+#include "src/op/tensor_scalar_op.h"
 #include "src/op/tensor_unary_op.h"
 #include "src/op/transpose.h"
 
+using namespace NeuroFrame;
 void init_ops(pybind11::module& m) {
 	auto ops_m = m.def_submodule("ops", "NeuroFrame operators");
 	
@@ -36,24 +38,32 @@ void init_ops(pybind11::module& m) {
 	ops_m.def("sigmoid", &NeuroFrame::sigmoid, "input"_a);
 
 	ops_m.def("tensor_add", &NeuroFrame::tensor_add, "a"_a, "b"_a);
-
 	ops_m.def("tensor_sub", &NeuroFrame::tensor_sub, "a"_a, "b"_a);
-
 	ops_m.def("tensor_mul", &NeuroFrame::tensor_mul, "a"_a, "b"_a);
-
 	ops_m.def("tensor_div", &NeuroFrame::tensor_div, "a"_a, "b"_a);
-
 	ops_m.def("tensor_pow", &NeuroFrame::tensor_pow, "a"_a, "b"_a);
 
 	ops_m.def("tensor_eq", &NeuroFrame::tensor_eq, "a"_a, "b"_a);
 
 	ops_m.def("tensor_negate", &NeuroFrame::tensor_negate, "a"_a);
-
 	ops_m.def("tensor_inv", &NeuroFrame::tensor_inv, "a"_a);
-
 	ops_m.def("tensor_exp", &NeuroFrame::tensor_exp, "a"_a);
-
 	ops_m.def("tensor_log", &NeuroFrame::tensor_log, "a"_a);
+
+	#define DEFINE_TENSOR_SCALAR_OP(OP_NAME) \
+	ops_m.def("tensor_"#OP_NAME, &NeuroFrame::tensor_##OP_NAME, "tensor"_a, "scalar"_a); \
+	ops_m.def("tensor_"#OP_NAME, [](const Tensor &tensor, double scalar) { \
+		return NeuroFrame::tensor_##OP_NAME(tensor, Scalar(scalar).to_dtype(tensor.dtype)); \
+	}, "tensor"_a, "scalar"_a); \
+	ops_m.def("tensor_"#OP_NAME, [](const Tensor &tensor, int64_t scalar) { \
+		return NeuroFrame::tensor_##OP_NAME(tensor, Scalar(scalar).to_dtype(tensor.dtype)); \
+	}, "tensor"_a, "scalar"_a);
+
+	DEFINE_TENSOR_SCALAR_OP(adds);
+	DEFINE_TENSOR_SCALAR_OP(subs);
+	DEFINE_TENSOR_SCALAR_OP(muls);
+	DEFINE_TENSOR_SCALAR_OP(divs);
+	DEFINE_TENSOR_SCALAR_OP(pows);
 
 	ops_m.def("transpose", [] (const NeuroFrame::Tensor &input, std::optional<int> axe1, std::optional<int> axe2) -> NeuroFrame::Tensor {
 		if (axe1.has_value() != axe2.has_value()) {

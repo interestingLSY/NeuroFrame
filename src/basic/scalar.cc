@@ -101,7 +101,7 @@ double Scalar::as_double() const {
 	if (is_float_family()) {
 		return x.f;
 	} else {
-		LOG_FATAL("The scalar is not in the float family");
+		return (double)x.i;
 	}
 }
 
@@ -109,14 +109,14 @@ int64_t Scalar::as_int64() const {
 	if (is_int_family()) {
 		return x.i;
 	} else {
-		LOG_FATAL("The scalar is not in the int family");
+		return (int64_t)x.f;
 	}
 }
 
 template<typename T>
 T Scalar::to_c_dtype() const {
 	if constexpr (std::is_same_v<T, half>) {
-		return is_float_family() ? (half)x.f : (half)x.i;
+		return is_float_family() ? (half)x.f : (half)(float)x.i;
 	} else if constexpr (std::is_same_v<T, float>) {
 		return is_float_family() ? (float)x.f : (float)x.i;
 	} else if constexpr (std::is_same_v<T, double>) {
@@ -133,6 +133,16 @@ T Scalar::to_c_dtype() const {
 		LOG_FATAL("Unknown dtype");
 	}
 }
+
+#define INSTANTIATE_TO_C_DTYPE(T) \
+	template T Scalar::to_c_dtype<T>() const;
+INSTANTIATE_TO_C_DTYPE(half)
+INSTANTIATE_TO_C_DTYPE(float)
+INSTANTIATE_TO_C_DTYPE(double)
+INSTANTIATE_TO_C_DTYPE(int8_t)
+INSTANTIATE_TO_C_DTYPE(int16_t)
+INSTANTIATE_TO_C_DTYPE(int32_t)
+INSTANTIATE_TO_C_DTYPE(int64_t)
 
 Scalar Scalar::to_dtype(dtype_t target_dtype) const {
 	if (is_float_family()) {

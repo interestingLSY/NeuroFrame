@@ -6,6 +6,7 @@ add_library(neuroframe_backend_cuda STATIC
 	transpose.cu
 	matmul.cu
 	tensor_binary_op.cu
+	tensor_scalar_op.cu
 	tensor_unary_op.cu
 	pool.cu
 	cross_entropy_loss.cu

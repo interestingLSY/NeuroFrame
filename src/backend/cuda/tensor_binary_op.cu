@@ -30,7 +30,7 @@ __device__ __forceinline__ T perform_binary_op(const T &a, const T &b) {
 		return a / b;
 	} else if constexpr (OP_TYPE == BINARY_OP_TYPE::POW) {
 		if constexpr (std::is_same_v<T, float>) {
-			return __powf(a, b);
+			return powf(a, b);
 		} else if constexpr (std::is_same_v<T, double>) {
 			return pow(a, b);
 		} else {

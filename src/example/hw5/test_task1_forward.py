@@ -11,7 +11,7 @@ import neuroframe as nf
 
 def test_power_scalar_forward():
     np.testing.assert_allclose(
-        power_scalar(nf.Tensor([[0.5, 2.0, 3.0]]), scalar=2).numpy(),
+        nf.ops.tensor_pows(nf.Tensor([[0.5, 2.0, 3.0]], nf.float64), 2).numpy(),
         np.array([[0.25, 4.0, 9.0]]),
     )
 
@@ -43,7 +43,7 @@ def test_divide_forward():
 
 def test_divide_scalar_forward():
     np.testing.assert_allclose(
-        divide_scalar(Tensor([[1.7, 1.45]]), scalar=12).numpy(),
+        nf.ops.tensor_divs(nf.Tensor([[1.7, 1.45]]), 12).numpy(),
         np.array([[0.141666666667, 0.120833333333]]),
     )
 
@@ -368,10 +368,10 @@ if __name__ == "__main__":
         nf.Device.set_default_device(device)
         
         ## 可以分别测试每个函数
-        # test_power_scalar_forward()
+        test_power_scalar_forward()
         test_ewisepow_forward()
         test_divide_forward()
-        # test_divide_scalar_forward()
+        test_divide_scalar_forward()
         test_matmul_forward()
         # test_summation_forward()
         test_broadcast_to_forward()

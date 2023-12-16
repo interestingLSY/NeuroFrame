@@ -27,7 +27,7 @@ __device__ __forceinline__ T perform_unary_op(const T &a) {
 		return (T)1.0 / a;
 	} else if constexpr (OP_TYPE == UNARY_OP_TYPE::EXP) {
 		if constexpr (std::is_same_v<T, float>) {
-			return __expf(a);
+			return expf(a);
 		} else if constexpr (std::is_same_v<T, double>) {
 			return exp(a);
 		} else if constexpr (std::is_same_v<T, half>) {
@@ -37,7 +37,7 @@ __device__ __forceinline__ T perform_unary_op(const T &a) {
 		}
 	} else if constexpr (OP_TYPE == UNARY_OP_TYPE::LOG) {
 		if constexpr (std::is_same_v<T, float>) {
-			return __logf(a);
+			return logf(a);
 		} else if constexpr (std::is_same_v<T, double>) {
 			return log(a);
 		} else if constexpr (std::is_same_v<T, half>) {
