@@ -41,6 +41,8 @@ public:
 		return !(*this == other);
 	}
 
+	std::string get_hardware_name() const;
+	
 	static Device default_device;
 	static std::vector<Device> get_available_devices();
 	static Device get_default_device();

@@ -48,6 +48,33 @@ std::string Device::repr() const {
 	return "<Device " + this->to_string() + ">";
 }
 
+std::string Device::get_hardware_name() const {
+	if (type == device_type_t::CPU) {
+		FILE *fp = popen("cat /proc/cpuinfo | grep 'model name' | uniq | sed 's/.*: //g'", "r");
+		if (fp == NULL) {
+			LOG_FATAL("Failed to get CPU hardware name");
+		}
+		char buf[1024];
+		__attribute__((unused)) auto _ = fgets(buf, sizeof(buf), fp);
+		pclose(fp);
+		std::string s = buf;
+		if (s.back() == '\n') {
+			s.pop_back();
+		}
+		return s;
+	} else if (type == device_type_t::CUDA) {
+		cudaDeviceProp prop;
+		cudaError_t err = cudaGetDeviceProperties(&prop, device_index);
+		if (err != cudaSuccess) {
+			print_cuda_error();
+			LOG_FATAL("Failed to get CUDA device properties");
+		}
+		return prop.name;
+	} else {
+		LOG_FATAL("Unknown device type");
+	}
+}
+
 Device Device::default_device = Device::cpu();
 
 std::vector<Device> Device::get_available_devices() {
