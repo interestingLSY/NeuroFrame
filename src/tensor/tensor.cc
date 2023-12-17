@@ -79,6 +79,18 @@ Tensor Tensor::reshape(const std::vector<int64_t> &new_shape) const {
 	return Tensor(mem_frag, device, dtype, first_elem_offset, new_shape);
 }
 
+Tensor Tensor::copy() const {
+	Tensor ret(shape, dtype, device);
+	NeuroFrame::memcpy(
+		(char*)ret.mem_frag.ptr,
+		ret.device,
+		(char*)this->mem_frag.ptr + first_elem_offset * get_dtype_size(dtype),
+		this->device,
+		this->numel() * get_dtype_size(dtype)
+	);
+	return ret;
+}
+
 void* Tensor::get_elem_addr(const std::vector <int64_t> &pos) const {
 	int64_t offset = get_elem_offset(pos);
 	return (char*)mem_frag.ptr + offset * get_dtype_size(dtype);

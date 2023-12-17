@@ -65,6 +65,8 @@ public:
 	int64_t dim() const;
 	// Reshape
 	Tensor reshape(const std::vector<int64_t> &new_shape) const;
+	// Copy (deep copy)
+	Tensor copy() const;
 	
 	// Get the address of one element
 	void* get_elem_addr(const std::vector<int64_t> &pos) const;

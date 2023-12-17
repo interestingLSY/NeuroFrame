@@ -12,6 +12,7 @@ using namespace pybind11::literals;	// For "_a" suffix
 #include "src/op/reshape.h"
 #include "src/op/sigmoid.h"
 #include "src/op/tensor_binary_op.h"
+#include "src/op/tensor_copy.h"
 #include "src/op/tensor_eq.h"
 #include "src/op/tensor_reduction_op.h"
 #include "src/op/tensor_scalar_op.h"
@@ -37,6 +38,8 @@ void init_ops(pybind11::module& m) {
 	ops_m.def("reshape", &NeuroFrame::reshape, "input"_a, "shape"_a);
 
 	ops_m.def("sigmoid", &NeuroFrame::sigmoid, "input"_a);
+
+	ops_m.def("tensor_copy", &NeuroFrame::tensor_copy, "input"_a);
 
 	ops_m.def("tensor_add", &NeuroFrame::tensor_add, "a"_a, "b"_a);
 	ops_m.def("tensor_sub", &NeuroFrame::tensor_sub, "a"_a, "b"_a);
