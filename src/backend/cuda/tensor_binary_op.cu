@@ -41,9 +41,9 @@ __device__ __forceinline__ T perform_binary_op(const T &a, const T &b) {
 
 template <typename T, BINARY_OP_TYPE OP_TYPE>
 __global__ void tensor_binary_op_kernel(
-	T *output,
-	const T *input1,
-	const T *input2,
+	T* __restrict__ output,
+	const T* __restrict__ input1,
+	const T* __restrict__ input2,
 	int64_t n
 ) {
 	#pragma unroll 4

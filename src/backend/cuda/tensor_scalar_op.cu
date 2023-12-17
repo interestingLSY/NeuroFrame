@@ -42,8 +42,8 @@ __device__ __forceinline__ T perform_tensor_scalar_op(const T &tensor_elem, cons
 
 template <typename T, TENSOR_SCALAR_OP_TYPE OP_TYPE>
 __global__ void tensor_scalar_op_kernel(
-	T *output,
-	const T *input,
+	T* __restrict__ output,
+	const T* __restrict__ input,
 	const T scalar_val,
 	int64_t n
 ) {

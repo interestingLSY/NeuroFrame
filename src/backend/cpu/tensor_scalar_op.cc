@@ -28,8 +28,8 @@ Tensor NAME(const Tensor &input, const Scalar &scalar) {\
 	int64_t n = input.numel(); \
 	Tensor output(input.shape, input.dtype, input.device); \
 	DISPATCH_ON_DTYPE_CPU_BACKEND(input.dtype, scalar_op_kernel( \
-		(T*)output.data_ptr(), \
-		(const T*)input.data_ptr(), \
+		(T*) output.data_ptr(), \
+		(const T*) input.data_ptr(), \
 		scalar.to_c_dtype<T>(), \
 		n, \
 		OP_LAMBDA \

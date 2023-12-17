@@ -4,8 +4,9 @@
 """
 
 import numpy as np
-import sys
-sys.path.append("/home/intlsy/projects/programming-in-ai/NeuroFrame/build/src/pybind")
+import sys, os
+if os.environ.get("LOCAL_TEST", False):
+    sys.path.append("/home/intlsy/projects/programming-in-ai/NeuroFrame/build/src/pybind")
 import neuroframe as nf
 
 
@@ -175,8 +176,8 @@ def test_matmul_forward():
 
 def test_summation_forward():
     np.testing.assert_allclose(
-        summation(
-            Tensor(
+        nf.ops.tensor_reduction_sum(
+            nf.Tensor(
                 [
                     [2.2, 4.35, 1.4, 0.3, 2.65],
                     [1.0, 0.85, 2.75, 3.8, 1.55],
@@ -187,8 +188,8 @@ def test_summation_forward():
         np.array(30.5),
     )
     np.testing.assert_allclose(
-        summation(
-            Tensor(
+        nf.ops.tensor_reduction_sum(
+            nf.Tensor(
                 [
                     [1.05, 2.55, 1.0],
                     [2.95, 3.7, 2.6],
@@ -197,14 +198,14 @@ def test_summation_forward():
                     [1.8, 4.55, 2.3],
                 ]
             ),
-            axes=1,
+            1,
         ).numpy(),
         np.array([4.6, 9.25, 7.5, 7.9, 8.65]),
     )
     np.testing.assert_allclose(
-        summation(
-            Tensor([[1.5, 3.85, 3.45], [1.35, 1.3, 0.65], [2.6, 4.55, 0.25]]),
-            axes=0,
+        nf.ops.tensor_reduction_sum(
+            nf.Tensor([[1.5, 3.85, 3.45], [1.35, 1.3, 0.65], [2.6, 4.55, 0.25]]),
+            0,
         ).numpy(),
         np.array([5.45, 9.7, 4.35]),
     )
@@ -373,7 +374,7 @@ if __name__ == "__main__":
         test_divide_forward()
         test_divide_scalar_forward()
         test_matmul_forward()
-        # test_summation_forward()
+        test_summation_forward()
         test_broadcast_to_forward()
         test_reshape_forward()
         test_negate_forward()
