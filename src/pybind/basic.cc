@@ -3,8 +3,9 @@ using namespace pybind11::literals;	// For "_a" suffix
 
 #include <pybind11/stl.h>
 
-#include "src/basic/random.h"
 #include "src/basic/device.h"
+#include "src/basic/inference_mode.h"
+#include "src/basic/random.h"
 #include "src/basic/scalar.h"
 
 void init_basic(pybind11::module& m) {
@@ -31,6 +32,20 @@ void init_basic(pybind11::module& m) {
 		.value("int32", NeuroFrame::dtype_t::INT32)
 		.value("int64", NeuroFrame::dtype_t::INT64)
 		.export_values();	// This exports the enum values into the parent scope, so that we can use neuroframe.float32 instead of neuroframe.dtype.float32
+	
+	pybind11::class_<NeuroFrame::InferenceModeGuard>(m, "InferenceModeGuard")
+		.def(pybind11::init<>())
+		.def("__enter__", [](NeuroFrame::InferenceModeGuard& instance) {
+			instance.__enter__();
+		})
+		.def("__exit__", [](NeuroFrame::InferenceModeGuard& instance, pybind11::object exc_type, pybind11::object exc_value, pybind11::object traceback) {
+			instance.__exit__();
+			return false;
+		});
+	m.def("is_inference_mode", &NeuroFrame::is_inference_mode);
+	m.def("inference_mode", []() {
+		return NeuroFrame::InferenceModeGuard();
+	});
 	
 	pybind11::class_<NeuroFrame::Scalar>(m, "Scalar")
 		.def("__init__", [](NeuroFrame::Scalar& instance, double f) {

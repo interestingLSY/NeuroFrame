@@ -1,5 +1,6 @@
 add_library(neuroframe_basic STATIC
 	device.cc
+	inference_mode.cc
 	log.cc
 	mem.cc
 	random.cc

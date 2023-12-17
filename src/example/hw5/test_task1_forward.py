@@ -5,8 +5,8 @@
 
 import numpy as np
 import sys, os
-if os.environ.get("LOCAL_TEST", False):
-    sys.path.append("/home/intlsy/projects/programming-in-ai/NeuroFrame/build/src/pybind")
+if os.environ.get("USE_LOCAL_DYNLIB", False):
+    sys.path.append(os.environ.get("USE_LOCAL_DYNLIB"))
 import neuroframe as nf
 
 
@@ -362,29 +362,30 @@ def test_log_forward():
 
 
 if __name__ == "__main__":
-    devices = nf.Device.get_available_devices()
-    print("Found devices:", devices)
-    for device in devices:
-        print(f"Testing device {device}")
-        nf.Device.set_default_device(device)
-        
-        ## 可以分别测试每个函数
-        test_power_scalar_forward()
-        test_ewisepow_forward()
-        test_divide_forward()
-        test_divide_scalar_forward()
-        test_matmul_forward()
-        test_summation_forward()
-        test_broadcast_to_forward()
-        test_reshape_forward()
-        test_negate_forward()
-        test_transpose_forward()
-        test_exp_forward()
-        test_log_forward()
-        ## log 和 exp 的测试没写...（我帮您写了，就在上一行）
-        ## 交作业的时候也是会测试的...（我帮您写了，就在上一行）
-        
-        print(f"Pass")
+    with nf.inference_mode():
+        devices = nf.Device.get_available_devices()
+        print("Found devices:", devices)
+        for device in devices:
+            print(f"Testing device {repr(device)}")
+            nf.Device.set_default_device(device)
+            
+            ## 可以分别测试每个函数
+            test_power_scalar_forward()
+            test_ewisepow_forward()
+            test_divide_forward()
+            test_divide_scalar_forward()
+            test_matmul_forward()
+            test_summation_forward()
+            test_broadcast_to_forward()
+            test_reshape_forward()
+            test_negate_forward()
+            test_transpose_forward()
+            test_exp_forward()
+            test_log_forward()
+            ## log 和 exp 的测试没写...（我帮您写了，就在上一行）
+            ## 交作业的时候也是会测试的...（我帮您写了，就在上一行）
+            
+            print(f"Pass")
     
 
     
