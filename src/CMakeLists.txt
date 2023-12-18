@@ -1,5 +1,6 @@
 add_subdirectory(backend)
 add_subdirectory(basic)
+add_subdirectory(cgraph)
 add_subdirectory(example)
 add_subdirectory(op)
 add_subdirectory(pybind)

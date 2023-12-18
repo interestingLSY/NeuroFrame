@@ -34,7 +34,7 @@ typedef std::function<std::vector<Tensor>(const std::vector<Tensor>&, const OpCo
 std::vector<Tensor> perform_op(
 	op_forward_func_t forward_op,
 	op_backward_func_t backward_op,
-	const std::vector<Tensor> &input,
+	std::vector<Tensor> input,
 	void* other_args = nullptr
 );
 

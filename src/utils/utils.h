@@ -1,8 +1,9 @@
 #pragma once
 
-#include <vector>
+#include <cassert>
 #include <ostream>
 #include <sstream>
+#include <vector>
 
 namespace NeuroFrame {
 
@@ -51,6 +52,9 @@ inline int64_t get_index_from_coord(const std::vector<int64_t> &shape, const std
 
 // Calculate the stride of a tensor based on its shape
 inline std::vector<int64_t> get_stride_from_shape(const std::vector<int64_t> &shape) {
+	if (shape.size() == 0) {
+		return {};
+	}
 	std::vector<int64_t> stride(shape.size());
 	stride[shape.size() - 1] = 1;
 	for (int i = (int)shape.size() - 2; i >= 0; --i) {
@@ -80,5 +84,26 @@ inline int64_t get_product_over_vector(const std::vector<int64_t> &vec, int64_t 
 #define FLOAT_REL_THRES ((float)1e-2)
 #define DOUBLE_ABS_THRES ((double)1e-6)
 #define DOUBLE_REL_THRES ((double)1e-4)
+
+/*
+assert_whenever: assertion which ignore whether NDEBUG is set
+
+In C++, assert() is evaluated only when NDEBUG is not set. This is
+inconvenient when we want to check the assertion even in release mode.
+This macro is a workaround for this problem.
+*/
+
+extern "C" {
+// Copied from assert.h
+extern void __assert_fail (const char *__assertion, const char *__file,
+			   unsigned int __line, const char *__function)
+     __THROW __attribute__ ((__noreturn__));
+
+#define __ASSERT_FUNCTION	__extension__ __PRETTY_FUNCTION__
+#  define assert_whenever(expr)							\
+     (static_cast <bool> (expr)						\
+      ? void (0)							\
+      : __assert_fail (#expr, __FILE__, __LINE__, __ASSERT_FUNCTION))
+}
 
 }

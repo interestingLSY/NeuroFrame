@@ -6,6 +6,7 @@
 #include "src/op/tensor_eq.h"
 #include "src/op/tensor_unary_op.h"
 #include "src/op/tensor_binary_op.h"
+#include "src/cgraph/cgraph_node.h"
 
 namespace NeuroFrame {
 
@@ -14,7 +15,8 @@ Tensor::Tensor(const MemFrag &frag, const Device &dev, const dtype_t &dtype, con
 	device(dev),
 	dtype(dtype),
 	first_elem_offset(first_elem_offset),
-	shape(shape)
+	shape(shape),
+	cgraph_node(std::make_shared<CGraph::CGraphNode>(CGraph::CGraphNode()))
 {
 	// Calculate stride
 	stride.resize(shape.size());
@@ -236,7 +238,8 @@ Tensor::Tensor(const std::vector<int64_t> &shape, dtype_t dtype, Device device):
 	device(device),
 	dtype(dtype),
 	first_elem_offset(0),
-	shape(shape)
+	shape(shape),
+	cgraph_node(std::make_shared<CGraph::CGraphNode>(CGraph::CGraphNode()))
 {
 	// Calculate stride
 	stride.resize(shape.size());
@@ -328,8 +331,21 @@ Tensor Tensor::operator-(const Tensor &other) const {
 	return tensor_sub(*this, other);
 }
 
+Tensor Tensor::operator*(const Tensor &other) const {
+	return tensor_mul(*this, other);
+}
+
+Tensor Tensor::operator/(const Tensor &other) const {
+	return tensor_div(*this, other);
+}
+
 Tensor Tensor::operator-() const {
 	return tensor_negate(*this);
+}
+
+std::ostream& operator<<(std::ostream &os, const Tensor &tensor) {
+	os << tensor.to_string();
+	return os;
 }
 
 }

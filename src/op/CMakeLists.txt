@@ -22,4 +22,6 @@ add_library(neuroframe_op STATIC
 target_link_libraries(neuroframe_op PUBLIC
 	neuroframe_tensor
 	neuroframe_backend_cpu
-	neuroframe_backend_cuda)
+	neuroframe_backend_cuda
+	neuroframe_cgraph
+)

@@ -6,6 +6,8 @@ using namespace pybind11::literals;	// For "_a" suffix
 
 #include "src/tensor/tensor.h"
 #include "src/utils/utils.h"
+#include "src/op/matmul.h"
+#include "src/op/tensor_scalar_op.h"
 
 using namespace NeuroFrame;
 
@@ -39,15 +41,19 @@ void init_tensor(pybind11::module& m) {
 		.def("__repr__", &Tensor::repr)
 		.def("print", &Tensor::print, "max_display_per_dim"_a = 16, "in_compat_style"_a = false)
 
-		.def("empty", [](Tensor& instance, const std::vector<int64_t>& shape, dtype_t dtype, const Device& device) {
-			new (&instance) Tensor(shape, dtype, device);
+		.def_static("empty", [](const std::vector<int64_t>& shape, dtype_t dtype, const Device& device) {
+			return Tensor(shape, dtype, device);
 		})
-		.def("empty", [](Tensor& instance, const std::vector<int64_t>& shape, dtype_t dtype) {
-			new (&instance) Tensor(shape, dtype, Device::get_default_device());
+		.def_static("empty", [](const std::vector<int64_t>& shape, dtype_t dtype) {
+			return Tensor(shape, dtype, Device::get_default_device());
 		})
 		.def_static("zeros", &Tensor::zeros, "shape"_a, "dtype"_a, "device"_a)
 		.def_static("zeros", [](const std::vector<int64_t>& shape, dtype_t dtype) {
 			return Tensor::zeros(shape, dtype, Device::get_default_device());
+		})
+		.def_static("fill", &Tensor::fill, "scalar"_a, "shape"_a, "dtype"_a, "device"_a)
+		.def_static("fill", [](const Scalar &scalar, const std::vector<int64_t>& shape, dtype_t dtype) {
+			return Tensor::fill(scalar, shape, dtype, Device::get_default_device());
 		})
 		.def_static("randu", static_cast<Tensor(*)(const std::vector<int64_t>&, dtype_t, Device, Scalar, Scalar)>(&Tensor::randu), "shape"_a, "dtype"_a, "device"_a, "low"_a = Scalar(-1.0f), "high"_a = Scalar(1.0f))
 		.def_static("randu", [](const std::vector<int64_t>& shape, dtype_t dtype, Scalar low, Scalar high) {
@@ -64,6 +70,13 @@ void init_tensor(pybind11::module& m) {
 
 		.def("__add__", &Tensor::operator+)
 		.def("__sub__", static_cast<Tensor(Tensor::*)(const Tensor&) const>(&Tensor::operator-))
+		.def("__mul__", &Tensor::operator*)
+		.def("__truediv__", &Tensor::operator/)
+
+		.def("__matmul__", [](const Tensor& a, const Tensor& b) {
+			return matmul(a, b);
+		})
+
 		.def("__neg__", static_cast<Tensor(Tensor::*)() const>(&Tensor::operator-))
 
 		// The following functions are extensions to the original Tensor

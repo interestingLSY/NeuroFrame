@@ -117,8 +117,8 @@ static op_backward_func_t tensor_mul_backward_func = [](const std::vector<Tensor
 	Tensor a = ctx.get_saved_tensors()[0];
 	Tensor b = ctx.get_saved_tensors()[1];
 	OpContext temp_ctx;
-	Tensor a_grad = tensor_mul(b, output_grad[0]);
-	Tensor b_grad = tensor_mul(a, output_grad[0]);
+	Tensor a_grad = tensor_mul_forward_manual(b, output_grad[0], temp_ctx);
+	Tensor b_grad = tensor_mul_forward_manual(a, output_grad[0], temp_ctx);
 	return {a_grad, b_grad};
 };
 

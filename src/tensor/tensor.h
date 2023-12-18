@@ -3,11 +3,17 @@
 #include <inttypes.h>
 
 #include <cstddef>
+#include <memory>
 #include <vector>
 
 #include "src/basic/device.h"
 #include "src/basic/mem.h"
 #include "src/basic/scalar.h"
+
+namespace NeuroFrame::CGraph {
+	// Declare CGraphNode here to avoid circular dependency
+	class CGraphNode;
+}
 
 namespace NeuroFrame {
 
@@ -55,6 +61,9 @@ public:
 	int64_t first_elem_offset;
 	std::vector<int64_t> shape;
 	std::vector<int64_t> stride;
+
+	// The corresponding CGraphNode in the compute graph
+	std::shared_ptr<CGraph::CGraphNode> cgraph_node;
 
 	// Basic operations
 	// Return the number of elements in this tensor
@@ -107,7 +116,11 @@ public:
 
 	Tensor operator+(const Tensor &other) const;
 	Tensor operator-(const Tensor &other) const;
-	Tensor operator-() const;
+	Tensor operator*(const Tensor &other) const;
+	Tensor operator/(const Tensor &other) const;
+	Tensor operator-() const; 
 };
+
+std::ostream& operator<<(std::ostream &os, const Tensor &tensor);
 
 }

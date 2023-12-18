@@ -58,7 +58,7 @@ int main() {
 		}, {4, 5}, dtype_t::FLOAT32, Device::cuda());
 
 		NeuroFrame::OpContext ctx;
-		Tensor c = NeuroFrame::matmul_forward_manual(a, b, false, false, ctx);
+		Tensor c = NeuroFrame::matmul_forward_manual(a, b, ctx);
 		std::vector<Tensor> grads = NeuroFrame::matmul_backward_manual(matmul_output_grad, ctx);
 		Tensor a_grad = grads[0];
 		Tensor b_grad = grads[1];

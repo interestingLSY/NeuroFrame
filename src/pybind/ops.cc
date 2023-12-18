@@ -29,7 +29,7 @@ void init_ops(pybind11::module& m) {
 
 	ops_m.def("cross_entropy_loss", &NeuroFrame::cross_entropy_loss, "input"_a, "ground_truth"_a);
 
-	ops_m.def("matmul", &NeuroFrame::matmul, "a"_a, "b"_a, "transpose_a"_a = false, "transpose_b"_a = false);
+	ops_m.def("matmul", &NeuroFrame::matmul, "a"_a, "b"_a);
 
 	ops_m.def("pool", &NeuroFrame::pool, "input"_a, "pool_size"_a);
 
@@ -39,7 +39,7 @@ void init_ops(pybind11::module& m) {
 
 	ops_m.def("sigmoid", &NeuroFrame::sigmoid, "input"_a);
 
-	ops_m.def("tensor_copy", &NeuroFrame::tensor_copy, "input"_a);
+	ops_m.def("copy", &NeuroFrame::tensor_copy, "input"_a);
 
 	ops_m.def("tensor_add", &NeuroFrame::tensor_add, "a"_a, "b"_a);
 	ops_m.def("tensor_sub", &NeuroFrame::tensor_sub, "a"_a, "b"_a);
