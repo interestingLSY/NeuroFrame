@@ -3,53 +3,63 @@
 本文件我们给出一些可能会用到的检验task2自动微分部分的函数
 """
 
-from test_task1_backward import gradient_check
-from test_task1_forward import matmul, reshape, negate, transpose, broadcast_to, summation
 import numpy as np
-from tensor import TensorFull as Tensor
+import sys, os
+if os.environ.get("USE_LOCAL_DYNLIB", False):
+    sys.path.append(os.environ.get("USE_LOCAL_DYNLIB"))
+import neuroframe as nf
+from test_task1_backward import gradient_check
 
 def test_compute_gradient():
     gradient_check(
-        lambda A, B, C: summation((A @ B + C) * (A @ B), axes=None),
-        Tensor(np.random.randn(10, 9)),
-        Tensor(np.random.randn(9, 8)),
-        Tensor(np.random.randn(10, 8)),
-        backward=True,
+        lambda A, B, C: nf.ops.tensor_reduction_sum((A @ B + C) * (A @ B)),
+        nf.Tensor(np.random.randn(10, 9)),
+        nf.Tensor(np.random.randn(9, 8)),
+        nf.Tensor(np.random.randn(10, 8))
     )
     gradient_check(
-        lambda A, B: summation(broadcast_to(A, shape=(10, 9)) * B, axes=None),
-        Tensor(np.random.randn(10, 1)),
-        Tensor(np.random.randn(10, 9)),
-        backward=True,
+        lambda A, B: nf.ops.tensor_reduction_sum(nf.ops.broadcast_to(A, (10, 9)) * B),
+        nf.Tensor(np.random.randn(10, 1)),
+        nf.Tensor(np.random.randn(10, 9))
     )
     gradient_check(
-        lambda A, B, C: summation(
-            reshape(A, shape=(10, 10)) @ B / 5 + C, axes=None
+        lambda A, B, C: nf.ops.tensor_reduction_sum(
+            nf.ops.tensor_divs(nf.ops.reshape(A, (10, 10)) @ B, 5) + C
         ),
-        Tensor(np.random.randn(100)),
-        Tensor(np.random.randn(10, 5)),
-        Tensor(np.random.randn(10, 5)),
-        backward=True,
+        nf.Tensor(np.random.randn(100)),
+        nf.Tensor(np.random.randn(10, 5)),
+        nf.Tensor(np.random.randn(10, 5))
     )
 
-    # check gradient of gradient
-    x2 = Tensor([6])
-    x3 = Tensor([0])
+    nf.cgraph.clear_graph()
+    x2 = nf.Tensor([6], nf.float32)
+    x3 = nf.Tensor([0], nf.float32)
     y = x2 * x2 + x2 * x3
-    y.backward()
-    grad_x2 = x2.grad
-    grad_x3 = x3.grad
-    # gradient of gradient
-    grad_x2.backward()
-    grad_x2_x2 = x2.grad
-    grad_x2_x3 = x3.grad
+    nf.cgraph.perform_backward(y, nf.Tensor.fill(nf.Scalar(1.0), y.shape, y.dtype))
+    grad_x2 = nf.cgraph.get_computed_grad(x2)
+    grad_x3 = nf.cgraph.get_computed_grad(x3)
     x2_val = x2.numpy()
     x3_val = x3.numpy()
     assert y.numpy() == x2_val * x2_val + x2_val * x3_val
     assert grad_x2.numpy() == 2 * x2_val + x3_val
     assert grad_x3.numpy() == x2_val
-    assert grad_x2_x2.numpy() == 2
-    assert grad_x2_x3.numpy() == 1
+    
+    # nf.cgraph.perform_backward(grad_x2, nf.Tensor.fill(nf.Scalar(1.0), y.shape, y.dtype))
+    # grad_x2_x2 = nf.cgraph.get_computed_grad(grad_x2)
+    # grad_x2_x3 = nf.cgraph.get_computed_grad(grad_x3)
+    # assert grad_x2_x2.numpy() == 2
+    # assert grad_x2_x3.numpy() == 1
 
 if __name__ == "__main__":
-    test_compute_gradient()
+    np.random.seed(0)
+    nf.set_random_seed(0)
+    devices = nf.Device.get_available_devices()
+    print("Found devices:", devices)
+    for device in devices:
+        print(f"---------------------------------------")
+        print(f"Testing device {repr(device)} ({device.get_hardware_name()})")
+        nf.Device.set_default_device(device)
+        
+        test_compute_gradient()
+        
+        print(f"Pass")

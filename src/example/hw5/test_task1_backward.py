@@ -9,28 +9,29 @@ if os.environ.get("USE_LOCAL_DYNLIB", False):
     sys.path.append(os.environ.get("USE_LOCAL_DYNLIB"))
 import neuroframe as nf
 
-def gradient_check(f, *tensors_, tol=3e-2):
-    eps = 1/2**14   # This number can be exactly represented in float32
+def gradient_check(f, *tensors_, tol=1e-4):
+    eps = 1/2**14   # This number can be exactly represented in float64
     tensors = list(tensors_)
     
     with nf.inference_mode():
+        tensors_fp64 = [nf.Tensor(a.numpy(), nf.float64) for a in tensors]
         numerical_grads = [np.zeros(a.shape) for a in tensors]
-        for i in range(len(tensors)):
-            for j in range(tensors[i].numel()):
-                old_tensor = nf.ops.copy(tensors[i])
-                raw_data = tensors[i].numpy()
+        for i in range(len(tensors_fp64)):
+            for j in range(tensors_fp64[i].numel()):
+                old_tensor = nf.ops.copy(tensors_fp64[i])
+                raw_data = tensors_fp64[i].numpy()
                 
                 raw_data.flat[j] += eps
-                tensors[i] = nf.Tensor(raw_data)
-                f1 = float(f(*tensors).numpy().sum())
+                tensors_fp64[i] = nf.Tensor(raw_data, nf.float64)
+                f1 = float(f(*tensors_fp64).numpy().sum())
                 
                 raw_data.flat[j] -= 2*eps
-                tensors[i] = nf.Tensor(raw_data)
-                f2 = float(f(*tensors).numpy().sum())
+                tensors_fp64[i] = nf.Tensor(raw_data, nf.float64)
+                f2 = float(f(*tensors_fp64).numpy().sum())
                 
-                tensors[i] = old_tensor
+                tensors_fp64[i] = old_tensor
                 numerical_grads[i].flat[j] = (f1 - f2) / (2 * eps)
-    
+
     nf.cgraph.clear_graph()
     output = nf.ops.tensor_reduction_sum(f(*tensors))
     nf.cgraph.perform_backward(output, nf.Tensor.fill(nf.Scalar(1.0), output.shape, output.dtype))
