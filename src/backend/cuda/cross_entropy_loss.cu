@@ -17,7 +17,7 @@ static __device__ __forceinline__ T __exp_d(const T &val) {
 	if constexpr (std::is_same_v<T, half>) {
 		return __expf(val);
 	} else if constexpr (std::is_same_v<T, float>) {
-		return __expf(val);
+		return expf(val);
 	} else if constexpr (std::is_same_v<T, double>) {
 		return exp(val);
 	}
@@ -28,7 +28,7 @@ static __device__ __forceinline__ T __log_d(const T &val) {
 	if constexpr (std::is_same_v<T, half>) {
 		return __logf(val);
 	} else if constexpr (std::is_same_v<T, float>) {
-		return __logf(val);
+		return logf(val);
 	} else if constexpr (std::is_same_v<T, double>) {
 		return log(val);
 	}
@@ -39,7 +39,7 @@ static __device__ __forceinline__ T __log_d(const T &val) {
 // Block size: (min(num_classes, MAX_BLOCK_SIZE))
 template<typename T>
 __global__ void batched_softmax_cross_entropy_loss_forward_kernel(
-	T* __restrict__ loss_result,			// ()
+	T* __restrict__ loss_result,			// (batch_size)
 	T* __restrict__ softmax_output,			// (batch_size, num_classes)
 	const T* __restrict__ answer,	// (batch_size, num_classes)
 	const int32_t* ground_truth,	// (batch_size)
@@ -78,8 +78,7 @@ __global__ void batched_softmax_cross_entropy_loss_forward_kernel(
 
 	// Step 2. Calculate the cross entropy loss
 	if (threadIdx.x == 0) {
-		T my_contrib = -__log_d(my_softmax_output[ground_truth[batch_id]])/(T)(float)batch_size;
-		atomicAdd(loss_result, my_contrib);
+		loss_result[batch_id] = -__log_d(my_softmax_output[ground_truth[batch_id]]);
 	}
 }
 
@@ -100,7 +99,7 @@ std::pair<Tensor, Tensor> batched_softmax_cross_entropy_loss_forward(const Tenso
 	int64_t batch_size = answer.shape[0];
 	int64_t num_classes = answer.shape[1];
 
-	Tensor loss_result = Tensor::zeros({}, answer.dtype, answer.device);
+	Tensor loss_result = Tensor::zeros({batch_size}, answer.dtype, answer.device);
 	Tensor softmax_output({batch_size, num_classes}, answer.dtype, answer.device);
 
 	int64_t block_size = std::min(num_classes, MAX_BLOCK_SIZE);

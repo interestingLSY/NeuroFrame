@@ -27,7 +27,7 @@ static op_backward_func_t relu_backward_func = [](const std::vector<Tensor> &out
 	do_basic_checkings_in_forward_and_backward(output_grad, ctx);
 	Tensor result = DISPATCH_TO_BACKEND(
 		output_grad[0].device.type,
-		relu_backward(output_grad[0], ctx.get_saved_tensors()[0])
+		relu_backward(output_grad[0], ctx.get_saved_tensor(0))
 	);
 	return {result};
 };

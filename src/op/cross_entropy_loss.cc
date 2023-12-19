@@ -14,7 +14,7 @@ namespace NeuroFrame {
 //  - input: the input tensor, (batch_size, num_classes)
 //	- ground_truth: the ground truth, (batch_size)
 // Output:
-//  - result: the result, ()
+//  - result: the result, (batch_size)
 // SavedContext:
 //  - saved_tensors[0]: the softmax result, (batch_size, num_classes)
 //  - saved_tensors[1]: the ground truth, (batch_size)
