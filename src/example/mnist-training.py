@@ -18,7 +18,7 @@ TEST_BATCH_SIZE = 100000
 # DEVICE = nf.Device.cpu()
 DEVICE = nf.Device.cuda(0)
 DTYPE = nf.float32
-NUM_EPOCHS = 256
+NUM_EPOCHS = 128
 LEARNING_RATE = 2e-2
 LEARNING_RATE_DECAY = 0.995
 
@@ -163,4 +163,14 @@ if __name__ == "__main__":
         history_train_losses.append(cur_epoch_train_loss)
         history_test_losses.append(cur_epoch_test_loss)
         
-        cur_learning_rate *= LEARNING_RATE_DECAY    
+        cur_learning_rate *= LEARNING_RATE_DECAY
+    
+    import matplotlib.pyplot as plt
+    plt.plot(history_train_losses, label="train")
+    plt.plot(history_test_losses, label="test")
+    plt.legend()
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss")
+    plt.title("MNIST training")
+    # plt.yscale("log")
+    plt.show()
