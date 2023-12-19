@@ -131,7 +131,7 @@ std::vector<Tensor> perform_backward(Tensor &src, Tensor &src_grad, bool log_dow
 			assert(input_grads.size() == edge->input_nodes.size());
 			for (size_t i = 0; i < input_grads.size(); ++i) {
 				if (!edge->input_nodes[i]->grad.has_value()) {
-					edge->input_nodes[i]->grad = std::make_optional(input_grads[i]);
+					edge->input_nodes[i]->grad = std::make_optional(input_grads[i].copy());
 				} else {
 					OpContext temp_ctx;
 					edge->input_nodes[i]->grad.value() = tensor_add_forward_manual(
