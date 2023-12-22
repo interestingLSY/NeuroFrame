@@ -1,4 +1,4 @@
-import os, random
+import os, random, time
 from typing import List, Tuple
 
 import torch
@@ -8,7 +8,7 @@ import torchvision
 
 import tqdm
 
-N_EPOCHS = 128
+N_EPOCHS = 64
 BATCH_SIZE_TRAIN = 64
 BATCH_SIZE_TEST = 65536
 
@@ -17,7 +17,7 @@ LEARNING_RATE = 2e-2
 RANDOM_SEED = 0
 DISABLE_CUDNN = False
 
-OPTIMZER_STEP = 1
+OPTIMZER_STEP = 64
 OPTIMIZER_GAMMA = 0.995
 
 DEVICE = torch.device("cuda")
@@ -91,6 +91,7 @@ if __name__ == "__main__":
         test_dataset.append((data.to(DEVICE), target.to(DEVICE)))
 
 
+    start_time = time.time()
     for epoch_idx in tqdm.tqdm(range(N_EPOCHS)):
         # Feed our network with every batch from the training set
         train_loss = 0      
@@ -116,3 +117,5 @@ if __name__ == "__main__":
         print(f"Epoch {epoch_idx+1}/{N_EPOCHS} | Train loss: {train_loss:.4f} | Test loss: {test_loss:.4f} | Accuracy: {accuracy:.4f}")
 
         scheduler.step()	# Update learning rate
+    end_time = time.time()
+    print(f"Training time: {end_time - start_time:.2f} s")

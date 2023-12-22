@@ -20,7 +20,7 @@ TEST_BATCH_SIZE = 100000
 # DEVICE = nf.Device.cpu()
 DEVICE = nf.Device.cuda(0)
 DTYPE = nf.float32
-NUM_EPOCHS = 128
+NUM_EPOCHS = 64
 LEARNING_RATE_DECAY = 0.995
 
 LEARNING_RATE = 2e-2
@@ -122,7 +122,6 @@ class Net:
         """
         Gradient descent
         """
-        t1 = time.time()
         # m1 = nf.ops.tensor_muls(nf.cgraph.get_computed_grad(self.w1), learning_rate)
         # self.w1 = self.w1 - m1
         # m2 = nf.ops.tensor_muls(nf.cgraph.get_computed_grad(self.w2), learning_rate)
@@ -130,8 +129,6 @@ class Net:
         # m3 = nf.ops.tensor_muls(nf.cgraph.get_computed_grad(self.w3), learning_rate)
         # self.w3 = self.w3 - m3
         self.optimizer.step(learning_rate)
-        t2 = time.time()
-        # print(t2-t1)
         
         
 if __name__ == "__main__":
@@ -151,6 +148,7 @@ if __name__ == "__main__":
     
     history_train_losses = []
     history_test_losses = []
+    start_time = time.time()
     for epoch in tqdm.tqdm(range(NUM_EPOCHS)):
         # Train
         train_loss = 0
@@ -184,6 +182,8 @@ if __name__ == "__main__":
         history_test_losses.append(cur_epoch_test_loss)
         
         cur_learning_rate *= LEARNING_RATE_DECAY
+    end_time = time.time()
+    print(f"Training time: {end_time-start_time:.2f} s")
     
     import matplotlib.pyplot as plt
     fig, (ax0, ax1) = plt.subplots(1, 2)
@@ -192,11 +192,13 @@ if __name__ == "__main__":
     ax0.set_ylabel("loss")
     ax0.set_xlabel("iteration")
     ax0.set_title("loss vs iteration")
+    ax0.legend()
 
     ax1.plot(np.log(history_train_losses), label="train")
     ax1.plot(np.log(history_test_losses), label="test")
     ax1.set_ylabel("loss (log)")
     ax1.set_xlabel("iteration")
     ax1.set_title("loss (log) vs iteration")
+    ax1.legend()
     
     plt.show()
