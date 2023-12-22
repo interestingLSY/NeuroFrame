@@ -4,6 +4,7 @@ pybind11_add_module(${PYMODULE_NAME} MODULE
 	basic.cc
 	cgraph.cc
 	ops.cc
+	optim.cc
 	pybind.cc
 	tensor.cc
 )
@@ -14,6 +15,7 @@ target_link_libraries(${PYMODULE_NAME} PRIVATE
 	neuroframe_basic
 	neuroframe_cgraph
 	neuroframe_op
+	neuroframe_optim
 	neuroframe_tensor
 )
 

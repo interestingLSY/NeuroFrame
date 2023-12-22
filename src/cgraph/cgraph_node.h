@@ -3,6 +3,7 @@
 #include <optional>
 
 #include "src/tensor/tensor.h"
+#include "src/optim/optim_state.h"
 #include "cgraph_edge.h"
 
 namespace NeuroFrame::CGraph {
@@ -15,7 +16,12 @@ struct CGraphEdge;
 // Multiple tensors can share the same GradInfo object as long as they are the
 // same tensor (i.e. they are created/assigned from the same tensor)
 struct CGraphNode {
-	std::optional<Tensor> grad;	// The gradient of the tensor that the CGraphNode represents
+	// The gradient of the tensor that the CGraphNode represents
+	std::optional<Tensor> grad;
+
+	// The optimizer state of the tensor that the CGraphNode represents
+	// Can be null if the tensor is not focused by any optimizer
+	std::shared_ptr<OptimStateBase> optim_state;
 
 	// Ingress edge (op that generates the tensor)
 	// and egress edges (ops that use the tensor)
@@ -29,7 +35,9 @@ struct CGraphNode {
 	CGraphNode();
 	~CGraphNode();
 
-	void reset();	// Reset the CGraphNode to its initial state
+	void clear_cgraph_elements();	// Reset all fields related to compute graph calculation (exclude optimizer states)
+	void reset_optim_state();		// Reset the optimizer state of the CGraphNode to its initial state
+	void reset_all();				// Reset the CGraphNode to its initial state
 };
 
 }

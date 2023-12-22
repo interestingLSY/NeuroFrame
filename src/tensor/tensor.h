@@ -31,13 +31,13 @@ inline T get_product_over_vector(const std::vector<T> &data) {
 
 class Tensor {
 private:
-	MemFrag mem_frag;	// The fragment that stores the underlying data
 	Tensor(const MemFrag &frag, const Device &dev, const dtype_t &dtype, const int64_t &first_elem_offset, const std::vector<int64_t> &shape);
 
 	// Get the offset (in elements) of a given position
 	int64_t get_elem_offset(const std::vector<int64_t> &pos) const;
 
 public:
+	MemFrag mem_frag;	// The fragment that stores the underlying data
 	Device device;	// The device that the tensor is on
 	dtype_t dtype;	// The data type of the tensor
 	
@@ -76,7 +76,9 @@ public:
 	Tensor reshape(const std::vector<int64_t> &new_shape) const;
 	// Copy (deep copy)
 	Tensor copy() const;
-	
+	// Replace the underlying memory fragment with a new one
+	void replace_mem_frag(const MemFrag &new_frag);
+
 	// Get the address of one element
 	void* get_elem_addr(const std::vector<int64_t> &pos) const;
 	// Get the content (in NeuroFrame::Tensor with shape == []) of one element
@@ -100,8 +102,10 @@ public:
 	Tensor(const std::vector<int64_t> &shape, dtype_t dtype, Device device);
 	// Fill with zeros
 	static Tensor zeros(const std::vector<int64_t> &shape, dtype_t dtype, Device device);
+	static Tensor zeros_like(const Tensor &other);
 	// Fill with the given number
 	static Tensor fill(Scalar x, const std::vector<int64_t> &shape, dtype_t dtype, Device device);
+	static Tensor fill_like(Scalar x, const Tensor &other);
 	// Fill with uniform distribution between `low` and `high`
 	static Tensor randu(const std::vector<int64_t> &shape, dtype_t dtype, Device device, Scalar low, Scalar high);
 	// Fill with uniform distribution between -1 and +1

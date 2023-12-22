@@ -158,7 +158,7 @@ Tensor get_computed_grad(const Tensor &src) {
 // clear_graph: Clear the compute graph
 void clear_graph() {
 	for (std::shared_ptr<CGraphNode> &node : associated_nodes) {
-		node->reset();
+		node->clear_cgraph_elements();
 	}
 	associated_nodes.clear();
 }

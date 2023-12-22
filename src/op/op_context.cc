@@ -1,5 +1,7 @@
 #include "op_context.h"
 
+#include "src/basic/inference_mode.h"
+
 namespace NeuroFrame {
 
 OpContext::OpContext() {
@@ -10,11 +12,13 @@ OpContext::~OpContext() {
 }
 
 void OpContext::save_args(void* args_ptr, size_t args_size) {
-	if (!saved_args.empty()) {
-		LOG_FATAL("save_args can only be called once");
+	if (!is_inference_mode()) {
+		if (!saved_args.empty()) {
+			LOG_FATAL("save_args can only be called once");
+		}
+		saved_args.resize(args_size);
+		::memcpy(saved_args.data(), args_ptr, args_size);
 	}
-	saved_args.resize(args_size);
-	::memcpy(saved_args.data(), args_ptr, args_size);
 }
 
 void* OpContext::get_saved_args() const {
@@ -22,7 +26,9 @@ void* OpContext::get_saved_args() const {
 }
 
 void OpContext::save_for_backward(const Tensor &tensor) {
-	saved_tensors.emplace_back(tensor);
+	if (!is_inference_mode()) {
+		saved_tensors.emplace_back(tensor);
+	}
 }
 
 std::vector<Tensor> OpContext::get_saved_tensors() const {

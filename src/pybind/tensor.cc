@@ -51,10 +51,12 @@ void init_tensor(pybind11::module& m) {
 		.def_static("zeros", [](const std::vector<int64_t>& shape, dtype_t dtype) {
 			return Tensor::zeros(shape, dtype, Device::get_default_device());
 		})
+		.def_static("zeros_like", &Tensor::zeros_like, "other"_a)
 		.def_static("fill", &Tensor::fill, "scalar"_a, "shape"_a, "dtype"_a, "device"_a)
 		.def_static("fill", [](const Scalar &scalar, const std::vector<int64_t>& shape, dtype_t dtype) {
 			return Tensor::fill(scalar, shape, dtype, Device::get_default_device());
 		})
+		.def_static("fill_like", &Tensor::fill_like, "scalar"_a, "other"_a)
 		.def_static("randu", static_cast<Tensor(*)(const std::vector<int64_t>&, dtype_t, Device, Scalar, Scalar)>(&Tensor::randu), "shape"_a, "dtype"_a, "device"_a, "low"_a = Scalar(-1.0f), "high"_a = Scalar(1.0f))
 		.def_static("randu", [](const std::vector<int64_t>& shape, dtype_t dtype, Scalar low, Scalar high) {
 			return Tensor::randu(shape, dtype, Device::get_default_device(), low, high);

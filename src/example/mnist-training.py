@@ -19,8 +19,13 @@ TEST_BATCH_SIZE = 100000
 DEVICE = nf.Device.cuda(0)
 DTYPE = nf.float32
 NUM_EPOCHS = 128
-LEARNING_RATE = 2e-2
 LEARNING_RATE_DECAY = 0.995
+
+# LEARNING_RATE = 2e-2
+# OPTIMIZER = nf.optim.SGD()
+
+LEARNING_RATE = 0.05
+OPTIMIZER = nf.optim.Adam(0.9, 0.999, 1e-8)
 
 
 # pytorch_tensor2neuroframe_tensor: Convert a PyTorch tensor to a neuroframe tensor
@@ -86,6 +91,11 @@ class Net:
         self.w1 = nf.Tensor.randu((784, 256), DTYPE)
         self.w2 = nf.Tensor.randu((256, 128), DTYPE)
         self.w3 = nf.Tensor.randu((128, 10), DTYPE)
+        
+        self.optimizer = OPTIMIZER
+        self.optimizer.add_focus(self.w1)
+        self.optimizer.add_focus(self.w2)
+        self.optimizer.add_focus(self.w3)
     
     def forward(self, input: nf.Tensor, ground_truth: nf.Tensor) -> tuple[nf.Tensor, nf.Tensor]:
         """
@@ -110,9 +120,10 @@ class Net:
         """
         Gradient descent
         """
-        self.w1 = self.w1 - nf.ops.tensor_muls(nf.cgraph.get_computed_grad(self.w1), learning_rate)
-        self.w2 = self.w2 - nf.ops.tensor_muls(nf.cgraph.get_computed_grad(self.w2), learning_rate)
-        self.w3 = self.w3 - nf.ops.tensor_muls(nf.cgraph.get_computed_grad(self.w3), learning_rate)
+        # self.w1 = self.w1 - nf.ops.tensor_muls(nf.cgraph.get_computed_grad(self.w1), learning_rate)
+        # self.w2 = self.w2 - nf.ops.tensor_muls(nf.cgraph.get_computed_grad(self.w2), learning_rate)
+        # self.w3 = self.w3 - nf.ops.tensor_muls(nf.cgraph.get_computed_grad(self.w3), learning_rate)
+        self.optimizer.step(learning_rate)
         
         
 if __name__ == "__main__":
@@ -149,17 +160,22 @@ if __name__ == "__main__":
         
         # Test
         nf.cgraph.clear_graph()
+        calc_correct_count = True if epoch % 16 == 0 else False
         with nf.inference_mode():
             test_loss = 0
             correct_count = 0
             for input, ground_truth in test_data:
                 pred_output, loss = net.forward(input, ground_truth)
                 test_loss += loss.numpy()
-                correct_count += sum(pred_output.numpy().argmax(axis=1) == ground_truth.numpy())
+                if calc_correct_count:
+                    correct_count += sum(pred_output.numpy().argmax(axis=1) == ground_truth.numpy())
             cur_epoch_test_loss = test_loss/num_test_data
             cur_epoch_correct_rate = correct_count/num_test_data
                 
-        print(f"Epoch {epoch}: train loss = {cur_epoch_train_loss}, test_loss = {cur_epoch_test_loss}, test correct rate: {cur_epoch_correct_rate*100:.2f}%")
+        print(f"Epoch {epoch}: train loss = {cur_epoch_train_loss}, test_loss = {cur_epoch_test_loss}", end='')
+        if calc_correct_count:
+            print(f" test correct rate: {cur_epoch_correct_rate*100:.2f}%")
+        print()
         history_train_losses.append(cur_epoch_train_loss)
         history_test_losses.append(cur_epoch_test_loss)
         

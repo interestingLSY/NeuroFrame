@@ -2,6 +2,7 @@
 
 #include <functional>
 
+#include "src/utils/utils.h"
 #include "src/basic/random.h"
 #include "src/op/tensor_eq.h"
 #include "src/op/tensor_unary_op.h"
@@ -91,6 +92,12 @@ Tensor Tensor::copy() const {
 		this->numel() * get_dtype_size(dtype)
 	);
 	return ret;
+}
+
+void Tensor::replace_mem_frag(const MemFrag &new_frag) {
+	assert_whenever(new_frag.length == mem_frag.length);
+	assert_whenever(new_frag.device == mem_frag.device);
+	mem_frag = new_frag;
 }
 
 void* Tensor::get_elem_addr(const std::vector <int64_t> &pos) const {
@@ -258,12 +265,20 @@ Tensor Tensor::zeros(const std::vector<int64_t> &shape, dtype_t dtype, Device de
 	return ret;
 }
 
+Tensor Tensor::zeros_like(const Tensor &other) {
+	return zeros(other.shape, other.dtype, other.device);
+}
+
 Tensor Tensor::fill(Scalar x, const std::vector<int64_t> &shape, dtype_t dtype, Device device) {
 	Tensor ret_h(shape, dtype, Device::cpu());
 	for (int64_t i = 0; i < ret_h.numel(); ++i) {
 		x.save_to((char*)ret_h.mem_frag.ptr + i * get_dtype_size(dtype), dtype);
 	}
 	return ret_h.to(device);
+}
+
+Tensor Tensor::fill_like(Scalar x, const Tensor &other) {
+	return fill(x, other.shape, other.dtype, other.device);
 }
 
 Tensor Tensor::randu(const std::vector<int64_t> &shape, dtype_t dtype, Device device,

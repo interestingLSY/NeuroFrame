@@ -88,6 +88,13 @@ MemFrag& MemFrag::operator=(const MemFrag& other) {
 	return *this;
 }
 
+void MemFrag::copy_from(const MemFrag& other) {
+	if (this->length != other.length) {
+		LOG_FATAL("Cannot copy memory between memory fragments with different lengths: %zu and %zu", this->length, other.length);
+	}
+	memcpy(this->ptr, this->device, other.ptr, other.device, this->length);
+}
+
 void memcpy(void* dst_ptr, const Device &dst_dev, const void* src_ptr, const Device &src_dev, size_t length) {
 	if (dst_dev.type == device_type_t::CPU && src_dev.type == device_type_t::CPU) {
 		// CPU -> CPU

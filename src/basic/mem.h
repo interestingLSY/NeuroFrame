@@ -28,6 +28,8 @@ public:
 	~MemFrag();
 	MemFrag(const MemFrag& other);
 	MemFrag& operator=(const MemFrag& other);
+
+	void copy_from(const MemFrag& other);
 };
 
 // memcpy - Copy memory between devices

@@ -53,7 +53,7 @@ __global__ void tensor_scalar_op_kernel(
 	}
 }
 
-constexpr int64_t BLOCK_SIZE = 256;
+constexpr int64_t BLOCK_SIZE = 512;
 const auto GRID_SIZE_CALCULATOR = [](int64_t n) {
 	return std::min((n + BLOCK_SIZE - 1) / BLOCK_SIZE, (int64_t)16384);
 };
