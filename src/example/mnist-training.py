@@ -1,9 +1,11 @@
 import os, sys
 import socket
 import tqdm
+import time
 
 import torch
 import torchvision
+import numpy as np
 
 import sys, os
 if os.environ.get("USE_LOCAL_DYNLIB", False):
@@ -21,11 +23,11 @@ DTYPE = nf.float32
 NUM_EPOCHS = 128
 LEARNING_RATE_DECAY = 0.995
 
-# LEARNING_RATE = 2e-2
-# OPTIMIZER = nf.optim.SGD()
+LEARNING_RATE = 2e-2
+OPTIMIZER = nf.optim.SGD()
 
-LEARNING_RATE = 0.003
-OPTIMIZER = nf.optim.Adam(0.9, 0.999, 1e-8)
+# LEARNING_RATE = 0.003
+# OPTIMIZER = nf.optim.Adam(0.9, 0.999, 1e-8)
 
 
 # pytorch_tensor2neuroframe_tensor: Convert a PyTorch tensor to a neuroframe tensor
@@ -120,10 +122,16 @@ class Net:
         """
         Gradient descent
         """
-        # self.w1 = self.w1 - nf.ops.tensor_muls(nf.cgraph.get_computed_grad(self.w1), learning_rate)
-        # self.w2 = self.w2 - nf.ops.tensor_muls(nf.cgraph.get_computed_grad(self.w2), learning_rate)
-        # self.w3 = self.w3 - nf.ops.tensor_muls(nf.cgraph.get_computed_grad(self.w3), learning_rate)
+        t1 = time.time()
+        # m1 = nf.ops.tensor_muls(nf.cgraph.get_computed_grad(self.w1), learning_rate)
+        # self.w1 = self.w1 - m1
+        # m2 = nf.ops.tensor_muls(nf.cgraph.get_computed_grad(self.w2), learning_rate)
+        # self.w2 = self.w2 - m2
+        # m3 = nf.ops.tensor_muls(nf.cgraph.get_computed_grad(self.w3), learning_rate)
+        # self.w3 = self.w3 - m3
         self.optimizer.step(learning_rate)
+        t2 = time.time()
+        # print(t2-t1)
         
         
 if __name__ == "__main__":
@@ -160,35 +168,35 @@ if __name__ == "__main__":
         
         # Test
         nf.cgraph.clear_graph()
-        # calc_correct_count = True if epoch % 16 == 0 else False
-        calc_correct_count = True
         with nf.inference_mode():
             test_loss = 0
             correct_count = 0
             for input, ground_truth in test_data:
                 pred_output, loss = net.forward(input, ground_truth)
                 test_loss += loss.numpy()
-                if calc_correct_count:
-                    correct_count += sum(pred_output.numpy().argmax(axis=1) == ground_truth.numpy())
+                correct_count += nf.ops.get_correct_sample_count(pred_output, ground_truth)
             cur_epoch_test_loss = test_loss/num_test_data
             cur_epoch_correct_rate = correct_count/num_test_data
                 
-        print(f"Epoch {epoch}: train loss = {cur_epoch_train_loss}, test_loss = {cur_epoch_test_loss}", end='')
-        if calc_correct_count:
-            print(f" test correct rate: {cur_epoch_correct_rate*100:.2f}%")
-        else:
-            print()
+        print(f"Epoch {epoch}: train loss = {cur_epoch_train_loss}, test_loss = {cur_epoch_test_loss}"
+              f" test correct rate: {cur_epoch_correct_rate*100:.2f}%")
         history_train_losses.append(cur_epoch_train_loss)
         history_test_losses.append(cur_epoch_test_loss)
         
         cur_learning_rate *= LEARNING_RATE_DECAY
     
     import matplotlib.pyplot as plt
-    plt.plot(history_train_losses, label="train")
-    plt.plot(history_test_losses, label="test")
-    plt.legend()
-    plt.xlabel("Epoch")
-    plt.ylabel("Loss")
-    plt.title("MNIST training")
-    # plt.yscale("log")
+    fig, (ax0, ax1) = plt.subplots(1, 2)
+    ax0.plot(history_train_losses, label="train")
+    ax0.plot(history_test_losses, label="test")
+    ax0.set_ylabel("loss")
+    ax0.set_xlabel("iteration")
+    ax0.set_title("loss vs iteration")
+
+    ax1.plot(np.log(history_train_losses), label="train")
+    ax1.plot(np.log(history_test_losses), label="test")
+    ax1.set_ylabel("loss (log)")
+    ax1.set_xlabel("iteration")
+    ax1.set_title("loss (log) vs iteration")
+    
     plt.show()

@@ -91,7 +91,7 @@ __device__ __forceinline__ T block_reduce_sum_broadcast(T val) {
 }
 
 template<typename T>
-__device__ __forceinline__ T block_reduce_max_broadcast(T val) {
+static __device__ __forceinline__ T block_reduce_max_broadcast(T val) {
 	static __shared__ T shared[32];
 	int lane = threadIdx.x % WARP_SIZE;
 	int wid = threadIdx.x / WARP_SIZE;

@@ -7,6 +7,7 @@ using namespace pybind11::literals;	// For "_a" suffix
 #include "src/op/convolution.h"
 #include "src/op/cross_entropy_loss.h"
 #include "src/op/matmul.h"
+#include "src/op/misc.h"
 #include "src/op/pool.h"
 #include "src/op/relu.h"
 #include "src/op/reshape.h"
@@ -28,6 +29,8 @@ void init_ops(pybind11::module& m) {
 	ops_m.def("broadcast_to", &NeuroFrame::broadcast_to, "input"_a, "target_shape"_a);
 
 	ops_m.def("cross_entropy_loss", &NeuroFrame::cross_entropy_loss, "input"_a, "ground_truth"_a);
+
+	ops_m.def("get_correct_sample_count", &NeuroFrame::get_correct_sample_count, "output"_a, "ground_truth"_a);
 
 	ops_m.def("matmul", &NeuroFrame::matmul, "a"_a, "b"_a);
 

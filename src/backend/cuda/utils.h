@@ -90,8 +90,14 @@ __host__ __device__ __forceinline__ constexpr T get_max() {
 	}
 }
 
-__device__ __forceinline__ half max(const half a, const half b) {
-	return __hgt(a, b) ? a : b;
+template<typename T>
+__device__ __forceinline__ T max(const T a, const T b) {
+	if constexpr (std::is_same<T, half>::value) {
+		return __hgt(a, b) ? a : b;
+	} else {
+		return a > b ? a : b;
+	}
 }
+
 
 }

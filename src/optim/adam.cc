@@ -51,7 +51,6 @@ void AdamOptimizer::step(double learning_rate) {
 			LOG_FATAL("Gradient of one tensor is not available during gradient descent");
 		}
 		Tensor grad = tensor.cgraph_node->grad.value();
-		OpContext temp_ctx;
 
 		optim_state->cur_timestep += 1;
 
