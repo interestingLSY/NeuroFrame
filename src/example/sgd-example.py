@@ -6,6 +6,7 @@ if os.environ.get("USE_LOCAL_DYNLIB", False):
     sys.path.append(os.environ.get("USE_LOCAL_DYNLIB"))
 import neuroframe as nf
 
+# Hyper parameters
 n = 1024
 learning_rate = 1e-3
 num_steps = 32
@@ -14,9 +15,11 @@ learning_rate_decay = 0.96
 
 nf.Device.set_default_device(nf.Device.cuda(0))
 
-# Network: output = sigmoid(input @ w1) @ w2
+# Generate input and expected output
 input = nf.Tensor.randu((1, n), dtype)
 expected_output = nf.Tensor.randu((1, n), dtype)
+
+# Network: output = sigmoid(input @ w1) @ w2
 w1 = nf.Tensor.randu((n, n), dtype)
 w2 = nf.Tensor.randu((n, n), dtype)
 
@@ -45,10 +48,15 @@ for i in range(num_steps):
     learning_rate *= learning_rate_decay
 
 import matplotlib.pyplot as plt
-plt.plot(losses)
-# log scale
-plt.yscale("log")
-plt.ylabel("loss")
-plt.xlabel("iteration")
-plt.title("loss vs iteration")
+fig, (ax0, ax1) = plt.subplots(1, 2)
+ax0.plot(losses)
+ax0.set_ylabel("loss")
+ax0.set_xlabel("iteration")
+ax0.set_title("loss vs iteration")
+
+ax1.plot(np.log(losses))
+ax1.set_ylabel("loss (log)")
+ax1.set_xlabel("iteration")
+ax1.set_title("loss (log) vs iteration")
+
 plt.show()
