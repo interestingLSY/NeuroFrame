@@ -24,7 +24,7 @@ LEARNING_RATE_DECAY = 0.995
 # LEARNING_RATE = 2e-2
 # OPTIMIZER = nf.optim.SGD()
 
-LEARNING_RATE = 0.05
+LEARNING_RATE = 0.003
 OPTIMIZER = nf.optim.Adam(0.9, 0.999, 1e-8)
 
 
@@ -160,7 +160,8 @@ if __name__ == "__main__":
         
         # Test
         nf.cgraph.clear_graph()
-        calc_correct_count = True if epoch % 16 == 0 else False
+        # calc_correct_count = True if epoch % 16 == 0 else False
+        calc_correct_count = True
         with nf.inference_mode():
             test_loss = 0
             correct_count = 0
@@ -175,7 +176,8 @@ if __name__ == "__main__":
         print(f"Epoch {epoch}: train loss = {cur_epoch_train_loss}, test_loss = {cur_epoch_test_loss}", end='')
         if calc_correct_count:
             print(f" test correct rate: {cur_epoch_correct_rate*100:.2f}%")
-        print()
+        else:
+            print()
         history_train_losses.append(cur_epoch_train_loss)
         history_test_losses.append(cur_epoch_test_loss)
         

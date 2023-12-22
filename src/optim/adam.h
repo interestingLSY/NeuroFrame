@@ -10,6 +10,7 @@ class AdamOptimState : public OptimStateBase {
 public:
 	Tensor momentum;
 	Tensor geo_mean;
+	int cur_timestep;
 	
 	AdamOptimState(const Tensor &tensor);
 	~AdamOptimState();
