@@ -5,6 +5,7 @@
 #include "src/backend/cpu/matmul.h"
 #include "src/backend/cuda/matmul.h"
 #include "src/op/matmul.h"
+#include "src/op/transpose.h"
 
 namespace NeuroFrame {
 
@@ -74,7 +75,7 @@ static op_forward_func_t batched_convolution_forward_func = [](const std::vector
 //	- output_grad: The output gradient tensor, (batch_size, c_out, h, w)
 // Output:
 //	- input_img_grad: The input image gradient tensor, (batch_size, c_in, h, w)
-//	- kernel_grad: The kernel gradient tensor, (batch_size, c_out, c_in, kh, kw)
+//	- kernel_grad: The kernel gradient tensor, (c_out, c_in, kh, kw)
 static op_backward_func_t batched_convolution_backward_func = [](const std::vector<Tensor> &output_grads, const OpContext &ctx) -> std::vector<Tensor> {
 	do_basic_checkings_in_forward_and_backward(output_grads, ctx);
 
@@ -104,14 +105,19 @@ static op_backward_func_t batched_convolution_backward_func = [](const std::vect
 		)
 	).reshape({batch_size, h_mult_w, c_in_mult_kh_mult_kw});	// (batch_size, h*w, c_in*kh*kw)
 
+	OpContext temp_ctx;
 	Tensor kernel_grad = DISPATCH_TO_BACKEND(
 		im2col_result.device.type,
 		batched_matmul(
-			output_grad.reshape({batch_size, c_out, h_mult_w}),
-			im2col_result.reshape({batch_size, h_mult_w, c_in_mult_kh_mult_kw}),
+			transpose_forward_manual(
+				output_grad.reshape({batch_size, c_out, h_mult_w}),
+				temp_ctx,
+				0, 1
+			).reshape({c_out, batch_size*h_mult_w}),
+			im2col_result.reshape({batch_size*h_mult_w, c_in_mult_kh_mult_kw}),
 			false, false
 		)
-	).reshape({batch_size, c_in, c_out, kh, kw});
+	).reshape({c_in, c_out, kh, kw});
 
 	Tensor input_img_grad = DISPATCH_TO_BACKEND(
 		im2col_result.device.type,
