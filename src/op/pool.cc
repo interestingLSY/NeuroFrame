@@ -9,9 +9,9 @@ namespace NeuroFrame {
 
 // pool_forward_func: The forward function of pool operator.
 // Input:
-//	- input: The input tensor, (batch_size, height, weight)
+//	- input: The input tensor, (batch_size, c, height, weight)
 // Output:
-//	- result: The result tensor, (batch_size, height/pool_size, weight/pool_size)
+//	- result: The result tensor, (batch_size, c, height/pool_size, weight/pool_size)
 // SavedContext:
 //	- saved_tensors[0]: The max mask
 // OtherArgs: 8byte
@@ -38,7 +38,7 @@ static op_forward_func_t pool_forward_func = [](const std::vector<Tensor> &input
 };
 
 static op_backward_func_t pool_backward_func = [](const std::vector<Tensor> &output_grad, const OpContext &ctx) -> std::vector<Tensor> {
-	// do_basic_checkings_in_forward_and_backward(output_grad, ctx);	Do not check this since max_mask is always in FP16
+	// do_basic_checkings_in_forward_and_backward(output_grad, ctx);	Do not check this since max_mask is always in INT8
 	
 	PoolForwardArgs args = *(PoolForwardArgs*)ctx.get_saved_args();
 	Tensor max_mask = ctx.get_saved_tensors()[0];
