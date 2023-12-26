@@ -15,8 +15,6 @@ namespace NeuroFrame {
 // When the reference count reaches 0, the underlying memory is freed.
 class MemFrag {
 private:
-	static void* allocate_helper(NeuroFrame::Device device, size_t length);
-	static void free_helper(NeuroFrame::Device device, void* ptr);
 
 public:
 	NeuroFrame::Device device;	// The device that the memory fragment is on

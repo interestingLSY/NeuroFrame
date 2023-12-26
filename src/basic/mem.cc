@@ -6,50 +6,15 @@
 #include <stdexcept>
 
 #include "log.h"
+#include "mem_pool/mem_pool.h"
 
 namespace NeuroFrame {
-
-void* MemFrag::allocate_helper(NeuroFrame::Device device, size_t length) {
-	if (device.type == device_type_t::CPU) {
-		void* ptr = malloc(length);
-		if (ptr == nullptr) {
-			LOG_FATAL("Failed to allocate memory on CPU");
-		}
-		return ptr;
-	} else if (device.type == device_type_t::CUDA) {
-		void* ptr;
-		device.switch_to();
-		cudaError_t err = cudaMalloc(&ptr, length);
-		if (err != cudaSuccess) {
-			print_cuda_error();
-			LOG_FATAL("Failed to allocate memory on CUDA");
-		}
-		return ptr;
-	} else {
-		LOG_FATAL("Unknown device type");
-	}
-}
-
-void MemFrag::free_helper(NeuroFrame::Device device, void* ptr) {
-	if (device.type == device_type_t::CPU) {
-		free(ptr);
-	} else if (device.type == device_type_t::CUDA) {
-		device.switch_to();
-		cudaError_t err = cudaFree(ptr);
-		if (err != cudaSuccess) {
-			print_cuda_error();
-			LOG_FATAL("Failed to free memory on CUDA");
-		}
-	} else {
-		LOG_FATAL("Unknown device type");
-	}
-}
 
 MemFrag::MemFrag(NeuroFrame::Device device, size_t length):
 	device(device),
 	length(length)
 {
-	ptr = allocate_helper(device, length);
+	ptr = get_mem_pool(device)->allocate(length);
 	refcnt = new size_t;
 	*refcnt = 1;
 }
@@ -58,7 +23,7 @@ MemFrag::~MemFrag() {
 	*refcnt -= 1;
 	if (*refcnt == 0) {
 		delete refcnt;
-		MemFrag::free_helper(device, ptr);
+		get_mem_pool(device)->free(ptr, length);
 	}
 }
 
@@ -78,7 +43,7 @@ MemFrag& MemFrag::operator=(const MemFrag& other) {
 	*refcnt -= 1;
 	if (*refcnt == 0) {
 		delete refcnt;
-		MemFrag::free_helper(device, ptr);
+		get_mem_pool(device)->free(ptr, length);
 	}
 	device = other.device;
 	ptr = other.ptr;
