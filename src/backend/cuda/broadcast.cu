@@ -11,22 +11,41 @@
 
 namespace NeuroFrame::Backend::CUDA {
 
+constexpr int MAX_DIM = 5;
+
+template<typename T, int N>
+struct StaticArray {
+	T data[N];
+	inline void copy_from(const std::vector<T> &vec) {
+		if (vec.size() > N) {
+			LOG_FATAL("The size of the vector (%ld) is larger than size of the static array (%d)", vec.size(), N);
+		}
+		::memcpy(data, vec.data(), sizeof(T)*vec.size());
+	}
+};
+
 // broadcast_to_kernel - Broadcast a tensor `input` to the given shape
 template<typename T>
 __global__ void broadcast_to_kernel(
 	T* __restrict__ output,
 	const T* __restrict__ input,
-	const int64_t* __restrict__ input_shape,
-	const int64_t* __restrict__ target_stride,
+	const StaticArray<int64_t, MAX_DIM> input_shape,
+	const StaticArray<int64_t, MAX_DIM> target_stride,
 	const int64_t dim,
 	const int64_t target_numel
 ) {
+	__shared__ int64_t s_input_shape[MAX_DIM], s_target_stride[MAX_DIM];
+	if (threadIdx.x < dim) {
+		s_input_shape[threadIdx.x] = input_shape.data[threadIdx.x];
+		s_target_stride[threadIdx.x] = target_stride.data[threadIdx.x];
+	}
+	__syncthreads();
 	for (int64_t target_index = blockIdx.x*blockDim.x + threadIdx.x; target_index < target_numel; target_index += blockDim.x*gridDim.x) {
 		int64_t input_index = 0;
 		#pragma unroll 4
 		for (int64_t dim_index = 0; dim_index < dim; dim_index++) {
-			int64_t coord_on_this_dim = (target_index / target_stride[dim_index]) % input_shape[dim_index];
-			input_index = input_index * input_shape[dim_index] + coord_on_this_dim;
+			int64_t coord_on_this_dim = (target_index / s_target_stride[dim_index]) % s_input_shape[dim_index];
+			input_index = input_index * s_input_shape[dim_index] + coord_on_this_dim;
 		}
 		output[target_index] = input[input_index];
 	}
@@ -36,10 +55,10 @@ template<typename T>
 __global__ void broadcast_to_backward_kernel(
 	T* __restrict__ input_grad,
 	const T* __restrict__ output_grad,
-	const int64_t* __restrict__ input_shape,
-	const int64_t* __restrict__ input_stride,
-	const int64_t* __restrict__ target_shape,
-	const int64_t* __restrict__ target_stride,
+	const StaticArray<int64_t, MAX_DIM> input_shape,
+	const StaticArray<int64_t, MAX_DIM> input_stride,
+	const StaticArray<int64_t, MAX_DIM> target_shape,
+	const StaticArray<int64_t, MAX_DIM> target_stride,
 	const int64_t dim,
 	const int64_t input_numel,
 	const int64_t target_numel
@@ -49,12 +68,12 @@ __global__ void broadcast_to_backward_kernel(
 	const int64_t worker_id = blockIdx.y*blockDim.x + threadIdx.x;
 	const int64_t group_size = blockDim.x*gridDim.y;
 	const int64_t numel_ratio = target_numel / input_numel;
-	__shared__ int64_t s_input_shape[8], s_input_stride[8], s_target_shape[8], s_target_stride[8];
+	__shared__ int64_t s_input_shape[MAX_DIM], s_input_stride[MAX_DIM], s_target_shape[MAX_DIM], s_target_stride[MAX_DIM];
 	if (threadIdx.x < dim) {
-		s_input_shape[threadIdx.x] = input_shape[threadIdx.x];
-		s_input_stride[threadIdx.x] = input_stride[threadIdx.x];
-		s_target_shape[threadIdx.x] = target_shape[threadIdx.x];
-		s_target_stride[threadIdx.x] = target_stride[threadIdx.x];
+		s_input_shape[threadIdx.x] = input_shape.data[threadIdx.x];
+		s_input_stride[threadIdx.x] = input_stride.data[threadIdx.x];
+		s_target_shape[threadIdx.x] = target_shape.data[threadIdx.x];
+		s_target_stride[threadIdx.x] = target_stride.data[threadIdx.x];
 	}
 	__syncthreads();
 	// Iterate over the input tensor...
@@ -68,14 +87,14 @@ __global__ void broadcast_to_backward_kernel(
 		}
 		T my_grad = 0;
 		#pragma unroll 4
-		for (int64_t target_offset = worker_id; target_offset < numel_ratio; target_offset += group_size){
+		for (int64_t target_offset = worker_id; target_offset < numel_ratio; target_offset += group_size) {
 			int64_t target_index = target_base_index;
 			#pragma unroll 4
 			for (int64_t dim_index = dim-1, temp_target_offset = target_offset; dim_index >= 0; --dim_index) {
 				int64_t cur_dim_repeat = s_target_shape[dim_index] / s_input_shape[dim_index];
 				int64_t cur_dim_repeat_index = temp_target_offset % cur_dim_repeat;
 				temp_target_offset /= cur_dim_repeat;
-				target_index += cur_dim_repeat_index * s_target_stride[dim_index];
+				target_index += cur_dim_repeat_index * s_input_shape[dim_index] * s_target_stride[dim_index];
 			}
 			my_grad += output_grad[target_index];
 		}
@@ -103,9 +122,9 @@ Tensor broadcast_to(const Tensor &input, const std::vector<int64_t> &target_shap
 	int64_t target_numel = get_product_over_vector(target_shape);
 	std::vector<int64_t> target_stride_h = get_stride_from_shape(target_shape);
 
-	static HostToDeviceAsyncCopyBuffer input_shape_buf, target_stride_buf;
-	input_shape_buf.send(input_shape_h.data(), dim * sizeof(int64_t));
-	target_stride_buf.send(target_stride_h.data(), dim * sizeof(int64_t));
+	StaticArray<int64_t, MAX_DIM> input_shape_buf, target_stride_buf;
+	input_shape_buf.copy_from(input_shape_h);
+	target_stride_buf.copy_from(target_stride_h);
 	
 	Tensor output(target_shape, input.dtype, input.device);
 	int64_t block_size = ELEMENT_WISE_KERNEL_BLOCK_SIZE;
@@ -114,8 +133,8 @@ Tensor broadcast_to(const Tensor &input, const std::vector<int64_t> &target_shap
 		broadcast_to_kernel<<<grid_size, block_size>>>(
 			(T*) output.data_ptr(),
 			(const T*) input.data_ptr(),
-			(int64_t*) input_shape_buf.d_ptr,
-			(int64_t*) target_stride_buf.d_ptr,
+			input_shape_buf,
+			target_stride_buf,
 			dim,
 			target_numel
 		)
@@ -144,11 +163,11 @@ Tensor broadcast_to_backward(const Tensor &output_grad, const std::vector<int64_
 	std::vector<int64_t> input_stride_h = get_stride_from_shape(input_shape_h);
 	std::vector<int64_t> target_stride_h = get_stride_from_shape(output_grad.shape);
 
-	static HostToDeviceAsyncCopyBuffer input_shape_buf, input_stride_buf, target_shape_buf, target_stride_buf;
-	input_shape_buf.send(input_shape_h.data(), dim * sizeof(int64_t));
-	input_stride_buf.send(input_stride_h.data(), dim * sizeof(int64_t));
-	target_shape_buf.send(target_shape.data(), dim * sizeof(int64_t));
-	target_stride_buf.send(target_stride_h.data(), dim * sizeof(int64_t));
+	static StaticArray<int64_t, MAX_DIM> input_shape_buf, input_stride_buf, target_shape_buf, target_stride_buf;
+	input_shape_buf.copy_from(input_shape_h);
+	input_stride_buf.copy_from(input_stride_h);
+	target_shape_buf.copy_from(target_shape);
+	target_stride_buf.copy_from(target_stride_h);
 
 	Tensor input_grad = Tensor::zeros(original_input_shape_h, output_grad.dtype, output_grad.device);
 
@@ -164,19 +183,21 @@ Tensor broadcast_to_backward(const Tensor &output_grad, const std::vector<int64_
 	if (dim > 8) {
 		LOG_FATAL("The number of dimensions (%ld) is too large. The current kernel only supports dim <= 8", dim);
 	}
+	// sync_check_cuda_error_force();
 	DISPATCH_ON_DTYPE_CUDA_BACKEND(output_grad.dtype, 
 		broadcast_to_backward_kernel<<<grid_size, block_size>>>(
 			(T*) input_grad.data_ptr(),
 			(const T*) output_grad.data_ptr(),
-			(int64_t*) input_shape_buf.d_ptr,
-			(int64_t*) input_stride_buf.d_ptr,
-			(int64_t*) target_shape_buf.d_ptr,
-			(int64_t*) target_stride_buf.d_ptr,
+			input_shape_buf,
+			input_stride_buf,
+			target_shape_buf,
+			target_stride_buf,
 			dim,
 			input_numel,
 			target_numel
 		)
 	);
+	// sync_check_cuda_error_force();
 
 	return input_grad;
 }

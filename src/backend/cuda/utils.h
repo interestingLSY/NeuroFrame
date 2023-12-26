@@ -103,12 +103,39 @@ __device__ __forceinline__ T max(const T a, const T b) {
 	}
 }
 
-
+// HostToDeviceAsyncCopyBuffer: A buffer that can be used to asynchronously
+// copy data from host to device.
+// 
+// Since cudaMemcpyAsync requires the source pointer to be a page-lock memory
+// to achieve asynchronous copy, we need to allocate a page-lock memory and
+// copy data from the source pointer to the page-lock memory first, and then
+// copy data from the page-lock memory to the device memory.
+// 
+// This class implements the above idea. It allocates a page-lock memory and a
+// device memory. When send() is called, it copies data from the source pointer
+// to the page-lock memory, and then copies data from the page-lock memory to
+// the device memory asynchronously. When wait() is called, it waits for the
+// asynchronous copy to finish.
+// 
+// The `wait()` function is crucial for avoiding race conditions. If the
+// async copy has not finished when we issued another send(), the data will
+// be corrupted.
 class HostToDeviceAsyncCopyBuffer {
+private:
+	size_t cur_size;
+	cudaEvent_t copy_event;
+	bool has_copy_event = false;
+
+	void wait() {
+		assert(has_copy_event);
+		CUDA_CHECK(cudaEventSynchronize(copy_event));
+		cudaEventDestroy(copy_event);
+		has_copy_event = false;
+	}
+
 public:
 	void* h_ptr;
 	void* d_ptr;
-	size_t cur_size;
 
 	HostToDeviceAsyncCopyBuffer(const size_t init_size = 32*8) {
 		assert(init_size > 0);
@@ -123,6 +150,9 @@ public:
 	}
 
 	void send(const void* src, const size_t size) {
+		if (has_copy_event) {
+			wait();
+		}
 		if (size > cur_size) {
 			CUDA_CHECK(cudaFreeHost(h_ptr));
 			CUDA_CHECK(cudaFree(d_ptr));
@@ -134,7 +164,12 @@ public:
 		}
 		::memcpy(h_ptr, src, size);
 		CUDA_CHECK(cudaMemcpyAsync(d_ptr, h_ptr, size, cudaMemcpyHostToDevice));
+		cudaEventCreate(&copy_event);
+		cudaEventRecord(copy_event);
+		has_copy_event = true;
 	}
+
+	
 };
 
 }
