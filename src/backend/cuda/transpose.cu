@@ -30,8 +30,8 @@ __global__ void transpose_kernel(
 	for (int64_t a1 = blockIdx.x; a1 < d1; a1 += GRID_SIDE_LEN) {
 		for (int64_t a2 = blockIdx.y; a2 < d2; a2 += GRID_SIDE_LEN) {
 			for (int64_t a3 = blockIdx.z; a3 < d3; a3 += GRID_SIDE_LEN) {
-				for (int64_t a4 = threadIdx.x; a4 < d4; a4 += BLOCK_SIDE_LEN) {
-					for (int64_t a5 = threadIdx.y; a5 < d5; a5 += BLOCK_SIDE_LEN) {
+				for (int64_t a4 = threadIdx.y; a4 < d4; a4 += BLOCK_SIDE_LEN) {
+					for (int64_t a5 = threadIdx.x; a5 < d5; a5 += BLOCK_SIDE_LEN) {
 						int64_t input_index = INDEX_5D(
 							d1, d2, d3, d4, d5,
 							a1, a2, a3, a4, a5
@@ -77,8 +77,8 @@ Tensor transpose(const Tensor &input, int axe1, int axe2) {
 		std::min(d3, GRID_SIDE_LEN)
 	);
 	dim3 block_dim(
-		std::min(d4, BLOCK_SIDE_LEN),
-		std::min(d5, BLOCK_SIDE_LEN)
+		std::min(d5, BLOCK_SIDE_LEN),
+		std::min(d4, BLOCK_SIDE_LEN)
 	);
 	DISPATCH_ON_DTYPE_CUDA_BACKEND(input.dtype, transpose_kernel<<<grid_dim, block_dim>>>(
 		(const T*) input.data_ptr(),
