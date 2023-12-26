@@ -41,7 +41,7 @@ def gradient_check(f, *tensors_, tol=1e-4):
         np.linalg.norm(computed_grads[i] - numerical_grads[i])
         for i in range(len(tensors))
     )
-    if max_error > tol:
+    if max_error > tol or np.isnan(max_error):
         print(f"Gradient check failed on function {f.__name__} ({f})")
         print(f"Sum of absolute errors: {max_error} > tol = {tol}")
         for i in range(len(tensors)):
@@ -60,7 +60,7 @@ def gradient_check(f, *tensors_, tol=1e-4):
 
 def test_power_scalar_backward():
     gradient_check(
-        lambda x: nf.ops.tensor_pows(x, 2), nf.Tensor(np.random.randn(5, 4))
+        lambda x: nf.ops.tensor_pows(x, 2), nf.Tensor(np.random.randn(5, 4)+10)
     )
 
 def test_divide_backward():
@@ -193,7 +193,7 @@ def test_summation_backward():
 def test_log_backward():
     gradient_check(
         lambda x: nf.ops.tensor_log(x),
-        nf.Tensor(np.random.randn(5, 4)),
+        nf.Tensor(np.random.rand(5, 4)+10),
     )
 
 
@@ -201,6 +201,14 @@ def test_exp_backward():
     gradient_check(
         lambda x: nf.ops.tensor_exp(x),
         nf.Tensor(np.random.randn(5, 4)),
+    )
+    
+
+def test_conv_backward():
+    gradient_check(
+        lambda x, y: nf.ops.tensor_pows(nf.ops.batched_convolution(x, y), 3),
+        nf.Tensor(np.random.rand(1, 1, 28, 28)),
+        nf.Tensor(np.random.rand(2, 1, 3, 3)),
     )
 
 if __name__ == "__main__":
@@ -238,6 +246,8 @@ if __name__ == "__main__":
         test_log_backward()
         print("Testing exp")
         test_exp_backward()
+        print("Testing conv")
+        test_conv_backward()
         ## log 和 exp 的测试没写...（我帮您写了，就在上一行）
         ## 交作业的时候也是会测试的...（我帮您写了，就在上一行）
         

@@ -62,7 +62,10 @@ static op_forward_func_t batched_convolution_forward_func = [](const std::vector
 			im2col_result.reshape({batch_size*h*w, c_in*kh*kw}),
 			false, true
 		)
-	).reshape({batch_size, c_out, h, w});	// (batch_size, c_out, h*w)
+	).reshape({c_out, batch_size, h, w});
+
+	OpContext temp_ctx;
+	conv_result = transpose_forward_manual(conv_result, temp_ctx, 0, 1);	// (batch_size, c_out, h, w)
 
 	ctx.save_for_backward(kernel);
 	ctx.save_for_backward(im2col_result);
@@ -105,19 +108,19 @@ static op_backward_func_t batched_convolution_backward_func = [](const std::vect
 		)
 	).reshape({batch_size, h_mult_w, c_in_mult_kh_mult_kw});	// (batch_size, h*w, c_in*kh*kw)
 
-	OpContext temp_ctx;
+	OpContext temp_ctx1, temp_ctx2;
 	Tensor kernel_grad = DISPATCH_TO_BACKEND(
 		im2col_result.device.type,
 		batched_matmul(
 			transpose_forward_manual(
 				output_grad.reshape({batch_size, c_out, h_mult_w}),
-				temp_ctx,
+				temp_ctx1,
 				0, 1
 			).reshape({c_out, batch_size*h_mult_w}),
 			im2col_result.reshape({batch_size*h_mult_w, c_in_mult_kh_mult_kw}),
 			false, false
 		)
-	).reshape({c_in, c_out, kh, kw});
+	).reshape({c_out, c_in, kh, kw});
 
 	Tensor input_img_grad = DISPATCH_TO_BACKEND(
 		im2col_result.device.type,

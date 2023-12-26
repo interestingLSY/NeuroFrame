@@ -128,6 +128,17 @@ std::vector<Tensor> perform_backward(Tensor &src, Tensor &src_grad, bool log_dow
 				edge->ctx
 			);
 			// printf(", input grads = %s\n", vec_to_string(input_grads).c_str());
+
+			// printf("Bw. Output grads shape: ");
+			// for (Tensor &output_grad : output_grads) {
+			// 	printf("%s, ", vec_to_string(output_grad.shape).c_str());
+			// }
+			// printf("input grads shape: ");
+			// for (Tensor &input_grad : input_grads) {
+			// 	printf("%s, ", vec_to_string(input_grad.shape).c_str());
+			// }
+			// printf("\n");
+			
 			assert(input_grads.size() == edge->input_nodes.size());
 			for (size_t i = 0; i < input_grads.size(); ++i) {
 				if (!edge->input_nodes[i]->grad.has_value()) {
