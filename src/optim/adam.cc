@@ -23,8 +23,8 @@ AdamOptimizer::AdamOptimizer(double beta1, double beta2, double eps):
 }
 
 AdamOptimizer::~AdamOptimizer() {
-	for (const Tensor &tensor : focused_nodes) {
-		remove_focus(tensor);
+	while (!focused_nodes.empty()) {
+		remove_focus(focused_nodes.back());
 	}
 }
 

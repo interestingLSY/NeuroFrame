@@ -17,8 +17,8 @@ SGDOptimizer::SGDOptimizer(double momentum, double weight_decay):
 	weight_decay(weight_decay) {}
 
 SGDOptimizer::~SGDOptimizer() {
-	for (const Tensor &tensor : focused_nodes) {
-		remove_focus(tensor);
+	while (!focused_nodes.empty()) {
+		remove_focus(focused_nodes.back());
 	}
 }
 
