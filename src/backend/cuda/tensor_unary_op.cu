@@ -1,8 +1,9 @@
 #include "tensor_unary_op.h"
 
 #include <stdexcept>
-#include <cuda_runtime.h>
 #include <cstdlib>
+#include <cassert>
+#include <cuda_runtime.h>
 
 #include "src/tensor/tensor.h"
 #include "src/basic/log.h"
@@ -33,7 +34,7 @@ __device__ __forceinline__ T perform_unary_op(const T &a) {
 		} else if constexpr (std::is_same_v<T, half>) {
 			return (half)exp((float)a);
 		} else {
-			LOG_FATAL("Unsupported dtype");
+			assert(0);
 		}
 	} else if constexpr (OP_TYPE == UNARY_OP_TYPE::LOG) {
 		if constexpr (std::is_same_v<T, float>) {
@@ -43,7 +44,7 @@ __device__ __forceinline__ T perform_unary_op(const T &a) {
 		} else if constexpr (std::is_same_v<T, half>) {
 			return (half)log((float)a);
 		} else {
-			LOG_FATAL("Unsupported dtype");
+			assert(0);
 		}
 	}
 }
