@@ -166,18 +166,19 @@ if __name__ == "__main__":
     start_time = time.time()
     for epoch in tqdm.tqdm(range(NUM_EPOCHS)):
         # Train
-        train_loss = 0
+        train_loss = nf.Tensor.zeros((), DTYPE)
         for input, ground_truth in train_data:
             # Clear the compute graph
             nf.cgraph.clear_graph()
             # Forward
             _, loss = net.forward(input, ground_truth)
-            train_loss += loss.numpy()
+            train_loss += loss
             # Backward
             net.backward(loss)
             # Gradient descent
             net.grad_update(cur_learning_rate)
             # time.sleep(1)
+        train_loss = train_loss.numpy()
         cur_epoch_train_loss = train_loss/num_train_data
         
         # Test

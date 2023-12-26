@@ -86,7 +86,6 @@ __global__ void broadcast_to_backward_kernel(
 			target_base_index = target_base_index * s_target_shape[dim_index] + coord_on_this_dim;
 		}
 		T my_grad = 0;
-		#pragma unroll 4
 		for (int64_t target_offset = worker_id; target_offset < numel_ratio; target_offset += group_size) {
 			int64_t target_index = target_base_index;
 			#pragma unroll 4
@@ -119,6 +118,10 @@ Tensor broadcast_to(const Tensor &input, const std::vector<int64_t> &target_shap
 	}
 
 	int64_t dim = input.dim();
+	if (dim > MAX_DIM) {
+		LOG_FATAL("The number of dimensions (%ld) is too large. The current kernel only supports dim <= %d", dim, MAX_DIM);
+	}
+	
 	int64_t target_numel = get_product_over_vector(target_shape);
 	std::vector<int64_t> target_stride_h = get_stride_from_shape(target_shape);
 
@@ -158,6 +161,10 @@ Tensor broadcast_to_backward(const Tensor &output_grad, const std::vector<int64_
 	}
 
 	int64_t dim = output_grad.dim();
+	if (dim > MAX_DIM) {
+		LOG_FATAL("The number of dimensions (%ld) is too large. The current kernel only supports dim <= %d", dim, MAX_DIM);
+	}
+
 	int64_t input_numel = get_product_over_vector(input_shape_h);
 	int64_t target_numel = output_grad.numel();
 	std::vector<int64_t> input_stride_h = get_stride_from_shape(input_shape_h);
@@ -180,9 +187,7 @@ Tensor broadcast_to_backward(const Tensor &output_grad, const std::vector<int64_
 		int64_t grid_y = target_numel/input_numel/1024L;
 		grid_size = dim3(std::min(input_numel, 32768L/grid_y), grid_y, 1);
 	}
-	if (dim > 8) {
-		LOG_FATAL("The number of dimensions (%ld) is too large. The current kernel only supports dim <= 8", dim);
-	}
+	
 	// sync_check_cuda_error_force();
 	DISPATCH_ON_DTYPE_CUDA_BACKEND(output_grad.dtype, 
 		broadcast_to_backward_kernel<<<grid_size, block_size>>>(

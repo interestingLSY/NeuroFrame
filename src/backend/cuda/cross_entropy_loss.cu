@@ -99,7 +99,7 @@ std::pair<Tensor, Tensor> batched_softmax_cross_entropy_loss_forward(const Tenso
 	int64_t batch_size = answer.shape[0];
 	int64_t num_classes = answer.shape[1];
 
-	Tensor loss_result = Tensor::zeros({batch_size}, answer.dtype, answer.device);
+	Tensor loss_result = Tensor({batch_size}, answer.dtype, answer.device);
 	Tensor softmax_output({batch_size, num_classes}, answer.dtype, answer.device);
 
 	int64_t block_size = std::min(num_classes, MAX_BLOCK_SIZE);
