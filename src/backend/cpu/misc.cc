@@ -47,4 +47,40 @@ int64_t get_correct_sample_count(const Tensor &output, const Tensor &ground_trut
 	return answer;
 }
 
+template<typename T>
+void sgd_grad_update_kernel(
+	T* __restrict__ weight,
+	const T* __restrict__ grad,
+	T* __restrict__ momentum,
+	T learning_rate,
+	T momentum_factor,
+	T weight_decay,
+	int64_t num_elements
+) {
+	#pragma omp parallel for schedule(static)
+	for (int64_t i = 0; i < num_elements; i++) {
+		T cur_grad = weight_decay != 0 ? (T)(grad[i] + weight_decay * weight[i]) : grad[i];
+		if (momentum_factor != 0) {
+			cur_grad = momentum[i] = momentum_factor * momentum[i] + cur_grad;
+		}
+		weight[i] = weight[i] - learning_rate*cur_grad;
+	}
+}
+
+void sgd_grad_update(Tensor &weight, const Tensor &grad, Tensor &momentum, double learning_rate, double momentum_factor, double weight_decay) {
+	int64_t num_elements = weight.numel();
+	DISPATCH_ON_DTYPE_CPU_BACKEND(
+		weight.dtype,
+		sgd_grad_update_kernel(
+			(T*) weight.data_ptr(),
+			(const T*) grad.data_ptr(),
+			(T*) momentum.data_ptr(),
+			(T) learning_rate,
+			(T) momentum_factor,
+			(T) weight_decay,
+			num_elements
+		)
+	);
+}
+
 }

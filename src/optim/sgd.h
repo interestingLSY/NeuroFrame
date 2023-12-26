@@ -7,13 +7,20 @@ namespace NeuroFrame {
 
 class SGDOptimState : public OptimStateBase {
 public:
-	SGDOptimState();
+	Tensor momentum;
+
+	SGDOptimState(const Tensor &weight, bool have_momentum);
+
 	~SGDOptimState();
 };
 
 class SGDOptimizer : public Optimizer {
+private:
+	double momentum;
+	double weight_decay;
+	
 public:
-	SGDOptimizer();
+	SGDOptimizer(double momentum, double weight_decay);
 	~SGDOptimizer();
 
 	void add_focus(const Tensor &tensor);

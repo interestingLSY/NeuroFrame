@@ -1,3 +1,6 @@
+*.nsys-rep
+*.sqlite
+
 /build
 /.vscode
 __pycache__

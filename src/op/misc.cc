@@ -48,4 +48,12 @@ int64_t get_correct_sample_count(const Tensor &pred_output, const Tensor &ground
 	return perform_op(get_correct_sample_count_forward_func, get_correct_sample_count_backward_func, {pred_output, ground_truth})[0].as_scalar().as_int64();
 }
 
+// sgd_grad_update
+void sgd_grad_update(Tensor &weight, const Tensor &grad, Tensor &momentum, double learning_rate, double momentum_factor, double weight_decay) {
+	DISPATCH_TO_BACKEND(
+		weight.device.type,
+		sgd_grad_update(weight, grad, momentum, learning_rate, momentum_factor, weight_decay)
+	);
+}
+
 }

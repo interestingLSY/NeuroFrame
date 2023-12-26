@@ -54,4 +54,55 @@ int64_t get_correct_sample_count(const Tensor &pred_output, const Tensor &ground
 	return answer_h;
 }
 
+template<typename T, bool HAVE_MOMENTUM, bool HAVE_WEIGHT_DECAY>
+__global__ void sgd_grad_update_kernel(
+	T* __restrict__ weight,
+	const T* __restrict__ grad,
+	T* __restrict__ momentum,
+	T learning_rate,
+	T momentum_factor,
+	T weight_decay,
+	int64_t num_elements
+) {
+	#pragma unroll 2
+	for (int64_t i = blockIdx.x * blockDim.x + threadIdx.x; i < num_elements; i += blockDim.x * gridDim.x) {
+		T cur_grad = HAVE_WEIGHT_DECAY ? grad[i] + weight_decay * weight[i] : grad[i];
+		if constexpr (HAVE_MOMENTUM) {
+			cur_grad = momentum[i] = momentum_factor * momentum[i] + cur_grad;
+		}
+		weight[i] = weight[i] - learning_rate*cur_grad;
+	}
+}
+
+void sgd_grad_update(Tensor &weight, const Tensor &grad, Tensor &momentum, double learning_rate, double momentum_factor, double weight_decay) {
+	int64_t numel = weight.numel();
+	int64_t block_size = ELEMENT_WISE_KERNEL_BLOCK_SIZE;
+	int64_t grid_size = element_wise_kernel_get_num_grids(numel);
+	#define DISPATCH(have_momentum, have_weight_decay) \
+		DISPATCH_ON_DTYPE_CUDA_BACKEND(weight.dtype, \
+			sgd_grad_update_kernel<T, have_momentum, have_weight_decay><<<grid_size, block_size>>>( \
+				(T*) weight.data_ptr(), \
+				(const T*) grad.data_ptr(), \
+				(T*) momentum.data_ptr(), \
+				(T) learning_rate, \
+				(T) momentum_factor, \
+				(T) weight_decay, \
+				numel \
+			));
+
+	if (momentum_factor == 0) {
+		if (weight_decay == 0) {
+			DISPATCH(false, false);
+		} else {
+			DISPATCH(false, true);
+		}
+	} else {
+		if (weight_decay == 0) {
+			DISPATCH(true, false);
+		} else {
+			DISPATCH(true, true);
+		}
+	}
+}
+
 }

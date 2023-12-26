@@ -13,9 +13,9 @@ void init_optim(pybind11::module& m) {
 	auto optim_m = m.def_submodule("optim", "NeuroFrame computational graph");
 
 	pybind11::class_<SGDOptimizer>(optim_m, "SGD")
-		.def("__init__", [](SGDOptimizer &self) {
-			new (&self) SGDOptimizer();
-		})
+		.def("__init__", [](SGDOptimizer &self, double momentum, double weight_decay) {
+			new (&self) SGDOptimizer(momentum, weight_decay);
+		}, "momentum"_a = 0.0, "weight_decay"_a = 0.0)
 		.def("add_focus", &SGDOptimizer::add_focus, "tensor"_a)
 		.def("remove_focus", &SGDOptimizer::remove_focus, "tensor"_a)
 		.def("step", &SGDOptimizer::step, "learning_rate"_a);
