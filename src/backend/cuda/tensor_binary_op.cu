@@ -52,17 +52,12 @@ __global__ void tensor_binary_op_kernel(
 	}
 }
 
-constexpr int64_t BLOCK_SIZE = 256;
-const auto GRID_SIZE_CALCULATOR = [](int64_t n) {
-	return std::min((n + BLOCK_SIZE - 1) / BLOCK_SIZE, (int64_t)16384);
-};
-
 #define DEFINE_BINARY_OP(name, OP_TYPE) \
 Tensor name(const Tensor &input1, const Tensor &input2) {\
 	int64_t n = input1.numel(); \
 	Tensor output(input1.shape, input1.dtype, input1.device); \
-	int64_t block_size = BLOCK_SIZE; \
-	int64_t grid_size = GRID_SIZE_CALCULATOR(block_size); \
+	int64_t block_size = ELEMENT_WISE_KERNEL_BLOCK_SIZE; \
+	int64_t grid_size = element_wise_kernel_get_num_grids(n); \
 	DISPATCH_ON_DTYPE_CUDA_BACKEND(input1.dtype,  \
 		tensor_binary_op_kernel<T, OP_TYPE><<<grid_size, block_size>>>( \
 			(T*) output.data_ptr(), \
