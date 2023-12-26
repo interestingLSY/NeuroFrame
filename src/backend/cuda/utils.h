@@ -4,13 +4,17 @@
 #include <cstddef>
 #include <cstdlib>
 #include <cmath>
+#include <cassert>
 
 #include "cuda_runtime.h"
 
+#include "src/utils/cuda_utils.h"
 #include "src/basic/log.h"
 #include "src/backend/utils.h"
 
 namespace NeuroFrame::Backend::CUDA {
+
+constexpr int64_t WARP_SIZE = 32;
 
 constexpr int64_t ELEMENT_WISE_KERNEL_BLOCK_SIZE = 256;
 constexpr int64_t ELEMENT_WISE_KERNEL_MAX_GRID = 1024;
@@ -99,5 +103,38 @@ __device__ __forceinline__ T max(const T a, const T b) {
 	}
 }
 
+
+class HostToDeviceAsyncCopyBuffer {
+public:
+	void* h_ptr;
+	void* d_ptr;
+	size_t cur_size;
+
+	HostToDeviceAsyncCopyBuffer(const size_t init_size = 32*8) {
+		assert(init_size > 0);
+		cur_size = init_size;
+		CUDA_CHECK(cudaMallocHost(&h_ptr, cur_size));
+		CUDA_CHECK(cudaMalloc(&d_ptr, cur_size));
+	}
+
+	~HostToDeviceAsyncCopyBuffer() {
+		CUDA_CHECK(cudaFreeHost(h_ptr));
+		CUDA_CHECK(cudaFree(d_ptr));
+	}
+
+	void send(const void* src, const size_t size) {
+		if (size > cur_size) {
+			CUDA_CHECK(cudaFreeHost(h_ptr));
+			CUDA_CHECK(cudaFree(d_ptr));
+			while (size > cur_size) {
+				cur_size *= 2;
+			}
+			CUDA_CHECK(cudaMallocHost(&h_ptr, cur_size));
+			CUDA_CHECK(cudaMalloc(&d_ptr, cur_size));
+		}
+		::memcpy(h_ptr, src, size);
+		CUDA_CHECK(cudaMemcpyAsync(d_ptr, h_ptr, size, cudaMemcpyHostToDevice));
+	}
+};
 
 }

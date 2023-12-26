@@ -7,6 +7,7 @@
 #include "src/utils/utils.h"
 #include "src/utils/cuda_utils.h"
 #include "utils.h"
+#include "reduction.cuh"
 
 namespace NeuroFrame::Backend::CUDA {
 
@@ -36,18 +37,52 @@ __global__ void broadcast_to_backward_kernel(
 	T* __restrict__ input_grad,
 	const T* __restrict__ output_grad,
 	const int64_t* __restrict__ input_shape,
+	const int64_t* __restrict__ input_stride,
+	const int64_t* __restrict__ target_shape,
 	const int64_t* __restrict__ target_stride,
 	const int64_t dim,
+	const int64_t input_numel,
 	const int64_t target_numel
 ) {
-	for (int64_t target_index = blockIdx.x*blockDim.x + threadIdx.x; target_index < target_numel; target_index += blockDim.x*gridDim.x) {
-		int64_t input_index = 0;
+	const int64_t group_id = blockIdx.x;
+	const int64_t num_groups = gridDim.x;
+	const int64_t worker_id = blockIdx.y*blockDim.x + threadIdx.x;
+	const int64_t group_size = blockDim.x*gridDim.y;
+	const int64_t numel_ratio = target_numel / input_numel;
+	__shared__ int64_t s_input_shape[8], s_input_stride[8], s_target_shape[8], s_target_stride[8];
+	if (threadIdx.x < dim) {
+		s_input_shape[threadIdx.x] = input_shape[threadIdx.x];
+		s_input_stride[threadIdx.x] = input_stride[threadIdx.x];
+		s_target_shape[threadIdx.x] = target_shape[threadIdx.x];
+		s_target_stride[threadIdx.x] = target_stride[threadIdx.x];
+	}
+	__syncthreads();
+	// Iterate over the input tensor...
+	for (int64_t input_index = group_id; input_index < input_numel; input_index += num_groups) {
+		// Calculate the corresponding index in the output tensor
+		int64_t target_base_index = 0;
 		#pragma unroll 4
 		for (int64_t dim_index = 0; dim_index < dim; dim_index++) {
-			int64_t coord_on_this_dim = (target_index / target_stride[dim_index]) % input_shape[dim_index];
-			input_index = input_index * input_shape[dim_index] + coord_on_this_dim;
+			int64_t coord_on_this_dim = (input_index / s_input_stride[dim_index]) % s_input_shape[dim_index];
+			target_base_index = target_base_index * s_target_shape[dim_index] + coord_on_this_dim;
 		}
-		atomicAdd(input_grad + input_index, output_grad[target_index]);
+		T my_grad = 0;
+		#pragma unroll 4
+		for (int64_t target_offset = worker_id; target_offset < numel_ratio; target_offset += group_size){
+			int64_t target_index = target_base_index;
+			#pragma unroll 4
+			for (int64_t dim_index = dim-1, temp_target_offset = target_offset; dim_index >= 0; --dim_index) {
+				int64_t cur_dim_repeat = s_target_shape[dim_index] / s_input_shape[dim_index];
+				int64_t cur_dim_repeat_index = temp_target_offset % cur_dim_repeat;
+				temp_target_offset /= cur_dim_repeat;
+				target_index += cur_dim_repeat_index * s_target_stride[dim_index];
+			}
+			my_grad += output_grad[target_index];
+		}
+		my_grad = block_reduce_sum(my_grad);
+		if (worker_id == 0) {
+			atomicAdd(&input_grad[input_index], my_grad);
+		}
 	}
 }
 
@@ -68,21 +103,10 @@ Tensor broadcast_to(const Tensor &input, const std::vector<int64_t> &target_shap
 	int64_t target_numel = get_product_over_vector(target_shape);
 	std::vector<int64_t> target_stride_h = get_stride_from_shape(target_shape);
 
-	static int64_t *input_shape_d = nullptr, *target_stride_d = nullptr, dim_d = 0;
-	if (dim_d < dim) {
-		if (input_shape_d != nullptr) {
-			CUDA_CHECK(cudaFree(input_shape_d));
-			CUDA_CHECK(cudaFree(target_stride_d));
-		}
-		while (dim_d < dim) {
-			dim_d = dim_d == 0 ? 16 : dim_d * 2;
-		}
-		CUDA_CHECK(cudaMalloc(&input_shape_d, dim_d * sizeof(int64_t)));
-		CUDA_CHECK(cudaMalloc(&target_stride_d, dim_d * sizeof(int64_t)));
-	}
-	CUDA_CHECK(cudaMemcpy(input_shape_d, input_shape_h.data(), dim * sizeof(int64_t), cudaMemcpyHostToDevice));
-	CUDA_CHECK(cudaMemcpy(target_stride_d, target_stride_h.data(), dim * sizeof(int64_t), cudaMemcpyHostToDevice));
-
+	static HostToDeviceAsyncCopyBuffer input_shape_buf, target_stride_buf;
+	input_shape_buf.send(input_shape_h.data(), dim * sizeof(int64_t));
+	target_stride_buf.send(target_stride_h.data(), dim * sizeof(int64_t));
+	
 	Tensor output(target_shape, input.dtype, input.device);
 	int64_t block_size = ELEMENT_WISE_KERNEL_BLOCK_SIZE;
 	int64_t grid_size = element_wise_kernel_get_num_grids(target_numel, block_size);
@@ -90,8 +114,8 @@ Tensor broadcast_to(const Tensor &input, const std::vector<int64_t> &target_shap
 		broadcast_to_kernel<<<grid_size, block_size>>>(
 			(T*) output.data_ptr(),
 			(const T*) input.data_ptr(),
-			input_shape_d,
-			target_stride_d,
+			(int64_t*) input_shape_buf.d_ptr,
+			(int64_t*) target_stride_buf.d_ptr,
 			dim,
 			target_numel
 		)
@@ -115,34 +139,41 @@ Tensor broadcast_to_backward(const Tensor &output_grad, const std::vector<int64_
 	}
 
 	int64_t dim = output_grad.dim();
+	int64_t input_numel = get_product_over_vector(input_shape_h);
 	int64_t target_numel = output_grad.numel();
+	std::vector<int64_t> input_stride_h = get_stride_from_shape(input_shape_h);
 	std::vector<int64_t> target_stride_h = get_stride_from_shape(output_grad.shape);
 
-	static int64_t *input_shape_d = nullptr, *target_stride_d = nullptr, dim_d = 0;
-	if (dim_d < dim) {
-		if (input_shape_d != nullptr) {
-			CUDA_CHECK(cudaFree(input_shape_d));
-			CUDA_CHECK(cudaFree(target_stride_d));
-		}
-		while (dim_d < dim) {
-			dim_d = dim_d == 0 ? 16 : dim_d * 2;
-		}
-		CUDA_CHECK(cudaMalloc(&input_shape_d, dim_d * sizeof(int64_t)));
-		CUDA_CHECK(cudaMalloc(&target_stride_d, dim_d * sizeof(int64_t)));
-	}
-	CUDA_CHECK(cudaMemcpy(input_shape_d, input_shape_h.data(), dim * sizeof(int64_t), cudaMemcpyHostToDevice));
-	CUDA_CHECK(cudaMemcpy(target_stride_d, target_stride_h.data(), dim * sizeof(int64_t), cudaMemcpyHostToDevice));
+	static HostToDeviceAsyncCopyBuffer input_shape_buf, input_stride_buf, target_shape_buf, target_stride_buf;
+	input_shape_buf.send(input_shape_h.data(), dim * sizeof(int64_t));
+	input_stride_buf.send(input_stride_h.data(), dim * sizeof(int64_t));
+	target_shape_buf.send(target_shape.data(), dim * sizeof(int64_t));
+	target_stride_buf.send(target_stride_h.data(), dim * sizeof(int64_t));
 
 	Tensor input_grad = Tensor::zeros(original_input_shape_h, output_grad.dtype, output_grad.device);
-	int64_t block_size = ELEMENT_WISE_KERNEL_BLOCK_SIZE;
-	int64_t grid_size = element_wise_kernel_get_num_grids(target_numel, block_size);
+
+	dim3 block_size, grid_size;
+	if (target_numel/input_numel <= 1024L) {
+		block_size = dim3(target_numel/input_numel, 1, 1);
+		grid_size = dim3(std::min(input_numel, 16384L), 1, 1);
+	} else {
+		block_size = dim3(1024L, 1, 1);
+		int64_t grid_y = target_numel/input_numel/1024L;
+		grid_size = dim3(std::min(input_numel, 32768L/grid_y), grid_y, 1);
+	}
+	if (dim > 8) {
+		LOG_FATAL("The number of dimensions (%ld) is too large. The current kernel only supports dim <= 8", dim);
+	}
 	DISPATCH_ON_DTYPE_CUDA_BACKEND(output_grad.dtype, 
 		broadcast_to_backward_kernel<<<grid_size, block_size>>>(
 			(T*) input_grad.data_ptr(),
 			(const T*) output_grad.data_ptr(),
-			input_shape_d,
-			target_stride_d,
+			(int64_t*) input_shape_buf.d_ptr,
+			(int64_t*) input_stride_buf.d_ptr,
+			(int64_t*) target_shape_buf.d_ptr,
+			(int64_t*) target_stride_buf.d_ptr,
 			dim,
+			input_numel,
 			target_numel
 		)
 	);
