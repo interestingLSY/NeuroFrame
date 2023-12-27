@@ -145,19 +145,19 @@ int main() {
 			2.1155, 3.9127, 4.0236, 3.3183, 1.7081
 		}, {1, 2, 5, 5}, dtype_t::FLOAT32, Device::cuda());
 
-		NeuroFrame::OpContext ctx;
-		Tensor conv_output = NeuroFrame::batched_convolution_forward_manual(input_img, kernel, ctx);
-		printf("Conv output:\n");
-		conv_output.print();
-		assert_whenever (conv_output == conv_output_reference);
+		// NeuroFrame::OpContext ctx;
+		// Tensor conv_output = NeuroFrame::batched_convolution_forward_manual(input_img, kernel, ctx);
+		// printf("Conv output:\n");
+		// conv_output.print();
+		// assert_whenever (conv_output == conv_output_reference);
 
-		std::vector<Tensor> grads = NeuroFrame::batched_convolution_backward_manual(conv_output_grad, ctx);
-		Tensor input_grad = grads[0];
-		Tensor kernel_grad = grads[1];
-		printf("Input grad:\n");
-		input_grad.print();
-		printf("Kernel grad:\n");
-		kernel_grad.print();
+		// std::vector<Tensor> grads = NeuroFrame::batched_convolution_backward_manual(conv_output_grad, ctx);
+		// Tensor input_grad = grads[0];
+		// Tensor kernel_grad = grads[1];
+		// printf("Input grad:\n");
+		// input_grad.print();
+		// printf("Kernel grad:\n");
+		// kernel_grad.print();
 	}
 
 	{

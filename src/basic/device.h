@@ -26,6 +26,14 @@ public:
 	std::string to_string() const;
 	std::string repr() const;
 
+	inline bool is_cpu() const {
+		return type == device_type_t::CPU;
+	}
+
+	inline bool is_cuda() const {
+		return type == device_type_t::CUDA;
+	}
+	
 	inline static Device cpu() {
 		return Device(device_type_t::CPU);
 	}

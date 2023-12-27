@@ -25,7 +25,7 @@ using namespace NeuroFrame;
 void init_ops(pybind11::module& m) {
 	auto ops_m = m.def_submodule("ops", "NeuroFrame operators");
 	
-	ops_m.def("batched_convolution", &NeuroFrame::batched_convolution, "input (BCHW)"_a, "kernel (C_out, C_in, H, W)"_a);
+	ops_m.def("batched_convolution", &NeuroFrame::batched_convolution, "input (BCHW)"_a, "kernel (C_out, C_in, H, W)"_a, "stride"_a = 1, "dilation"_a = 1);
 
 	ops_m.def("batch_norm", &NeuroFrame::batch_norm, "input (NCHW)"_a, "gamma"_a, "beta"_a,  "running_mean"_a, "running_var"_a, "momentum"_a, "epsilon"_a);
 	

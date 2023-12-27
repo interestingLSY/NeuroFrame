@@ -17,6 +17,8 @@ void init_basic(pybind11::module& m) {
 		.def("__repr__", &NeuroFrame::Device::repr)
 		.def("__eq__", &NeuroFrame::Device::operator==)
 		.def("__ne__", &NeuroFrame::Device::operator!=)
+		.def("is_cpu", &NeuroFrame::Device::is_cpu)
+		.def("is_cuda", &NeuroFrame::Device::is_cuda)
 		.def_static("cpu", &NeuroFrame::Device::cpu)
 		.def_static("cuda", &NeuroFrame::Device::cuda, "device_index"_a = 0)
 		.def("get_hardware_name", &NeuroFrame::Device::get_hardware_name)

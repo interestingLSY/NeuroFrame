@@ -4,8 +4,8 @@
 
 namespace NeuroFrame::Backend::CPU {
 
-Tensor batched_im2col(const Tensor &input_img, const int64_t kh, const int64_t kw);
+Tensor convolution_forward(const Tensor &input_img, const Tensor &kernel, const int64_t stride, const int64_t dilation);
 
-Tensor batched_col2im(const Tensor &input, const int64_t c_in, const int64_t h, const int64_t w, const int64_t kh, const int64_t kw);
+std::tuple<Tensor, Tensor> convolution_backward(const Tensor &output_grad, const Tensor &input_img, const Tensor &kernel, const int64_t stride, const int64_t dilation);
 
 }

@@ -1,5 +1,7 @@
 #include "convolution.h"
 
+#include <cudnn.h>
+
 #include "src/basic/log.h"
 #include "src/tensor/tensor.h"
 
@@ -7,154 +9,214 @@
 
 namespace NeuroFrame::Backend::CUDA {
 
-static constexpr int64_t MAX_BLOCK_SIZE = 1024;
+static cudnnHandle_t cudnn_handle;
 
-// batched_im2col_kernel
-// grid_size: (batch_size, c_in, h)
-// block_size: (min(w, MAX_BLOCK_SIZE))
-// Each thread is responsible for distributing one pixel into the output tensor
-template<typename T>
-__global__ void batched_im2col_kernel(
-	T* __restrict__ output,			// (batch_size, h*w, c_in*kh*kw)
-	const T* __restrict__ input,	// (batch_size, c_in, h, w)
-	const int64_t batch_size,
-	const int64_t c_in,
-	const int64_t h,
-	const int64_t w,
-	const int64_t kh,
-	const int64_t kw
-) {
-	int64_t batch_index = blockIdx.x;
-	int64_t c_in_index = blockIdx.y;
-	int64_t h_index = blockIdx.z;
+#define CUDNN_CHECK(call) \
+{ \
+	cudnnStatus_t status = call; \
+	if (status != CUDNN_STATUS_SUCCESS) { \
+		LOG_FATAL("CUDNN error: %s", cudnnGetErrorString(status)); \
+	} \
+}
 
-	for (int64_t w_index = threadIdx.x; w_index < w; w_index += blockDim.x) {
-		T* cur_output = output + batch_index*(h*w*c_in*kh*kw) + h_index*(w*c_in*kh*kw) + w_index*(c_in*kh*kw) + c_in_index*(kh*kw);
-		const T* cur_input = input + batch_index*(c_in*h*w) + c_in_index*(h*w) + h_index*(w) + w_index;
-		for (int64_t kh_index = -(kh/2); kh_index <= kh/2; ++kh_index) {
-			for (int64_t kw_index = -(kw/2); kw_index <= kw/2; ++kw_index) {
-				*cur_output = 
-					h_index + kh_index < 0 || h_index + kh_index >= h ||
-					w_index + kw_index < 0 || w_index + kw_index >= w ?
-					(T)0. :
-					cur_input[kh_index*w + kw_index];
-				cur_output += 1;
-			}
-		}
+static inline cudnnDataType_t get_cudnn_data_type(dtype_t dtype) {
+	switch (dtype) {
+		case dtype_t::FLOAT16:
+			return CUDNN_DATA_HALF;
+		case dtype_t::FLOAT32:
+			return CUDNN_DATA_FLOAT;
+		case dtype_t::FLOAT64:
+			return CUDNN_DATA_DOUBLE;
+		default:
+			LOG_FATAL("Unsupported dtype");
 	}
 }
 
-// batched_im2col: im2col with padding = 0 (zero padding), stride = 1
-Tensor batched_im2col(const Tensor &input_img, const int64_t kh, const int64_t kw) {
+class CUDNNInitializer {
+public:
+	CUDNNInitializer() {
+		CUDNN_CHECK(cudnnCreate(&cudnn_handle));
+	}
+	~CUDNNInitializer() {
+		CUDNN_CHECK(cudnnDestroy(cudnn_handle));
+	}
+} _cudnn_initializer;
+
+Tensor convolution_forward(const Tensor &input_img, const Tensor &kernel, const int64_t stride, const int64_t dilation) {
 	if (input_img.dim() != 4) {
 		LOG_FATAL("input_img.dim() != 4");
 	}
-	if (kh % 2 == 0 || kw % 2 == 0) {
-		LOG_FATAL("kh or kw is even");
+	if (kernel.dim() != 4) {
+		LOG_FATAL("kernel.dim() != 4");
 	}
-	int64_t batch_size = input_img.shape[0];
-	int64_t c_in = input_img.shape[1];
-	int64_t h = input_img.shape[2];
-	int64_t w = input_img.shape[3];
+	const int64_t b = input_img.shape[0];
+	const int64_t c_in = input_img.shape[1];
+	const int64_t h = input_img.shape[2];
+	const int64_t w = input_img.shape[3];
+	const int64_t c_out = kernel.shape[0];
+	const int64_t kh = kernel.shape[2];
+	const int64_t kw = kernel.shape[3];
 
-	Tensor result({batch_size, h*w, c_in*kh*kw}, input_img.dtype, input_img.device);
+	Tensor result({b, c_out, h, w}, input_img.dtype, input_img.device);
 
-	int64_t block_size = std::min(w, MAX_BLOCK_SIZE);
-	dim3 grid_size(batch_size, c_in, h);
+	// Get alpha and beta
+	float float_one = 1.0, float_zero = 0.0;
+	double double_one = 1.0, double_zero = 0.0;
+	void* alpha_ptr = input_img.dtype == dtype_t::FLOAT64 ? (void*)&double_one : (void*)&float_one;
+	void* beta_ptr = input_img.dtype == dtype_t::FLOAT64 ? (void*)&double_zero : (void*)&float_zero;
 
-	DISPATCH_ON_DTYPE_CUDA_BACKEND(input_img.dtype, batched_im2col_kernel<<<grid_size, block_size>>>(
-		(T*) result.data_ptr(),
-		(const T*) input_img.data_ptr(),
-		batch_size,
-		c_in,
-		h,
-		w,
-		kh,
-		kw
+	static cudnnTensorDescriptor_t input_desc;
+	static cudnnTensorDescriptor_t output_desc;
+	static cudnnFilterDescriptor_t kernel_desc;
+	static cudnnConvolutionDescriptor_t conv_desc;
+	static bool desc_created = false;
+	if (!desc_created) {
+		desc_created = true;
+		CUDNN_CHECK(cudnnCreateTensorDescriptor(&input_desc));
+		CUDNN_CHECK(cudnnCreateTensorDescriptor(&output_desc));
+		CUDNN_CHECK(cudnnCreateFilterDescriptor(&kernel_desc));
+		CUDNN_CHECK(cudnnCreateConvolutionDescriptor(&conv_desc));
+	}
+
+	cudnnDataType_t cudnn_datatype = get_cudnn_data_type(input_img.dtype);
+	CUDNN_CHECK(cudnnSetTensor4dDescriptor(input_desc, CUDNN_TENSOR_NCHW, cudnn_datatype, b, c_in, h, w));
+	CUDNN_CHECK(cudnnSetTensor4dDescriptor(output_desc, CUDNN_TENSOR_NCHW, cudnn_datatype, b, c_out, h, w));
+	CUDNN_CHECK(cudnnSetFilter4dDescriptor(kernel_desc, cudnn_datatype, CUDNN_TENSOR_NCHW, c_out, c_in, kh, kw));
+	CUDNN_CHECK(cudnnSetConvolution2dDescriptor(conv_desc, kh/2, kw/2, stride, stride, dilation, dilation, CUDNN_CROSS_CORRELATION, cudnn_datatype));
+
+	cudnnConvolutionFwdAlgoPerf_t perf_result; int _returned_algo_count;
+	CUDNN_CHECK(cudnnGetConvolutionForwardAlgorithm_v7(
+		cudnn_handle,
+		input_desc,
+		kernel_desc,
+		conv_desc,
+		output_desc,
+		1,
+		&_returned_algo_count,
+		&perf_result
+	));
+	size_t workspace_bytes = perf_result.memory;
+	void* workspace_ptr;
+	CUDA_CHECK(cudaMallocAsync(&workspace_ptr, workspace_bytes, cudaStreamDefault));
+
+	CUDNN_CHECK(cudnnConvolutionForward(
+		cudnn_handle,
+		alpha_ptr,
+		input_desc,
+		input_img.data_ptr(),
+		kernel_desc,
+		kernel.data_ptr(),
+		conv_desc,
+		perf_result.algo,
+		workspace_ptr,
+		workspace_bytes,
+		beta_ptr,
+		output_desc,
+		result.data_ptr()
 	));
 
+	CUDA_CHECK(cudaFreeAsync(workspace_ptr, cudaStreamDefault));
 	return result;
 }
 
-// batched_col2im_kernel
-// grid_size: (batch_size, c_in, h)
-// block_size: (min(w, MAX_BLOCK_SIZE))
-// Each thread is responsible for reduction of one pixel in the output tensor
-template<typename T>
-__global__ void batched_col2im_kernel(
-	T* __restrict__ output,				// (batch_size, c_in, h, w)
-	const T* __restrict__ col_grads,	// (batch_size, h*w, c_in*kh*kw)
-	const int64_t batch_size,
-	const int64_t c_in,
-	const int64_t h,
-	const int64_t w,
-	const int64_t kh,
-	const int64_t kw
-) {
-	int64_t batch_index = blockIdx.x;
-	int64_t c_in_index = blockIdx.y;
-	int64_t h_index = blockIdx.z;
+std::tuple<Tensor, Tensor> convolution_backward(const Tensor &output_grad, const Tensor &input_img, const Tensor &kernel, const int64_t stride, const int64_t dilation) {
+	const int64_t b = output_grad.shape[0];
+	const int64_t c_out = output_grad.shape[1];
+	const int64_t h = output_grad.shape[2];
+	const int64_t w = output_grad.shape[3];
+	const int64_t c_in = kernel.shape[1];
+	const int64_t kh = kernel.shape[2];
+	const int64_t kw = kernel.shape[3];
 
-	for (int64_t w_index = threadIdx.x; w_index < w; w_index += blockDim.x) {
-		T result = (T)0.;
-		for (int64_t kh_index = -(kh/2); kh_index <= kh/2; ++kh_index) {
-			for (int64_t kw_index = -(kw/2); kw_index <= kw/2; ++kw_index) {
-				int64_t conv_center_h_index = h_index + kh_index;
-				int64_t conv_center_w_index = w_index + kw_index;
-				if (conv_center_h_index >= 0 && conv_center_h_index < h &&
-					conv_center_w_index >= 0 && conv_center_w_index < w) {
-					int64_t conv_relpos_h_index = kh/2 - kh_index;
-					int64_t conv_relpos_w_index = kw/2 - kw_index;
-					// printf("%ld %ld\n", conv_relpos_h_index, conv_relpos_w_index);
-					int64_t col_index =
-						batch_index * (h*w*c_in*kh*kw) +
-						conv_center_h_index * (w*c_in*kh*kw) +
-						conv_center_w_index * (c_in*kh*kw) +
-						c_in_index * (kh*kw) +
-						conv_relpos_h_index * (kw) +
-						conv_relpos_w_index;
-					T contrib = col_grads[col_index];
-					result += contrib;
-				}
-			}
-		}
-		output[
-			batch_index * (c_in*h*w) +
-			c_in_index * (h*w) +
-			h_index * (w) +
-			w_index
-		] = result;
-	}
-}
+	Tensor input_grad({b, c_in, h, w}, output_grad.dtype, output_grad.device);
+	Tensor kernel_grad({c_out, c_in, kh, kw}, output_grad.dtype, output_grad.device);
 
-// input: (batch_size, h*w, c_in*kh*kw)
-Tensor batched_col2im(const Tensor &input, const int64_t c_in, const int64_t h, const int64_t w, const int64_t kh, const int64_t kw) {
-	if (input.dim() != 3) {
-		LOG_FATAL("input.dim() != im2col_result_grad3");
-	}
-	if (kh % 2 == 0 || kw % 2 == 0) {
-		LOG_FATAL("kh or kw is even");
+	// Get alpha and beta
+	float float_one = 1.0, float_zero = 0.0;
+	double double_one = 1.0, double_zero = 0.0;
+	void* alpha_ptr = output_grad.dtype == dtype_t::FLOAT64 ? (void*)&double_one : (void*)&float_one;
+	void* beta_ptr = output_grad.dtype == dtype_t::FLOAT64 ? (void*)&double_zero : (void*)&float_zero;
+
+	static cudnnTensorDescriptor_t input_grad_desc;
+	static cudnnTensorDescriptor_t output_grad_desc;
+	static cudnnFilterDescriptor_t kernel_desc;
+	static cudnnConvolutionDescriptor_t conv_desc;
+	static bool desc_created = false;
+	if (!desc_created) {
+		desc_created = true;
+		CUDNN_CHECK(cudnnCreateTensorDescriptor(&input_grad_desc));
+		CUDNN_CHECK(cudnnCreateTensorDescriptor(&output_grad_desc));
+		CUDNN_CHECK(cudnnCreateFilterDescriptor(&kernel_desc));
+		CUDNN_CHECK(cudnnCreateConvolutionDescriptor(&conv_desc));
 	}
 
-	int64_t batch_size = input.shape[0];
+	cudnnDataType_t cudnn_datatype = get_cudnn_data_type(output_grad.dtype);
+	CUDNN_CHECK(cudnnSetTensor4dDescriptor(input_grad_desc, CUDNN_TENSOR_NCHW, cudnn_datatype, b, c_in, h, w));
+	CUDNN_CHECK(cudnnSetTensor4dDescriptor(output_grad_desc, CUDNN_TENSOR_NCHW, cudnn_datatype, b, c_out, h, w));
+	CUDNN_CHECK(cudnnSetFilter4dDescriptor(kernel_desc, cudnn_datatype, CUDNN_TENSOR_NCHW, c_out, c_in, kh, kw));
+	CUDNN_CHECK(cudnnSetConvolution2dDescriptor(conv_desc, kh/2, kw/2, stride, stride, dilation, dilation, CUDNN_CROSS_CORRELATION, cudnn_datatype));
 
-	Tensor result({batch_size, c_in, h, w}, input.dtype, input.device);
-
-	int64_t block_size = std::min(w, MAX_BLOCK_SIZE);
-	dim3 grid_size(batch_size, c_in, h);
-
-	DISPATCH_ON_DTYPE_CUDA_BACKEND(input.dtype, batched_col2im_kernel<<<grid_size, block_size>>>(
-		(T*) result.data_ptr(),
-		(const T*) input.data_ptr(),
-		batch_size,
-		c_in,
-		h,
-		w,
-		kh,
-		kw
+	cudnnConvolutionBwdDataAlgoPerf_t data_perf_result; int _returned_algo_count;
+	CUDNN_CHECK(cudnnGetConvolutionBackwardDataAlgorithm_v7(
+		cudnn_handle,
+		kernel_desc,
+		output_grad_desc,
+		conv_desc,
+		input_grad_desc,
+		1,
+		&_returned_algo_count,
+		&data_perf_result
+	));
+	cudnnConvolutionBwdFilterAlgoPerf_t filter_perf_result;
+	CUDNN_CHECK(cudnnGetConvolutionBackwardFilterAlgorithm_v7(
+		cudnn_handle,
+		input_grad_desc,
+		output_grad_desc,
+		conv_desc,
+		kernel_desc,
+		1,
+		&_returned_algo_count,
+		&filter_perf_result
 	));
 
-	return result;
+	size_t workspace_bytes = std::max(data_perf_result.memory, filter_perf_result.memory);
+	void* workspace_ptr;
+	CUDA_CHECK(cudaMallocAsync(&workspace_ptr, workspace_bytes, cudaStreamDefault));
+
+	CUDNN_CHECK(cudnnConvolutionBackwardData(
+		cudnn_handle,
+		alpha_ptr,
+		kernel_desc,
+		kernel.data_ptr(),
+		output_grad_desc,
+		output_grad.data_ptr(),
+		conv_desc,
+		data_perf_result.algo,
+		workspace_ptr,
+		workspace_bytes,
+		beta_ptr,
+		input_grad_desc,
+		input_grad.data_ptr()
+	));
+	
+	CUDNN_CHECK(cudnnConvolutionBackwardFilter(
+		cudnn_handle,
+		alpha_ptr,
+		input_grad_desc,
+		input_img.data_ptr(),
+		output_grad_desc,
+		output_grad.data_ptr(),
+		conv_desc,
+		filter_perf_result.algo,
+		workspace_ptr,
+		workspace_bytes,
+		beta_ptr,
+		kernel_desc,
+		kernel_grad.data_ptr()
+	));
+
+	CUDA_CHECK(cudaFreeAsync(workspace_ptr, cudaStreamDefault));
+	return {input_grad, kernel_grad};
 }
 
 

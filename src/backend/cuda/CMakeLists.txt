@@ -16,4 +16,4 @@ add_library(neuroframe_backend_cuda STATIC
 	transpose.cu
 )
 
-target_link_libraries(neuroframe_backend_cuda PUBLIC neuroframe_tensor CUDA::cudart CUDA::cublas)
+target_link_libraries(neuroframe_backend_cuda PUBLIC neuroframe_tensor CUDA::cudart CUDA::cublas cudnn)

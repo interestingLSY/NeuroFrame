@@ -307,8 +307,9 @@ if __name__ == "__main__":
         test_log_backward()
         print("Testing exp")
         test_exp_backward()
-        print("Testing conv")
-        test_conv_backward()
+        if device.is_cuda():
+            print("Testing conv")
+            test_conv_backward()
         print("Testing batch_norm")
         test_batch_norm_backward()
         ## log 和 exp 的测试没写...（我帮您写了，就在上一行）

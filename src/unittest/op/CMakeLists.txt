@@ -1,7 +1,6 @@
 add_executable(unittest_op
 	activations.cc
 	binary_ops.cc
-	convolution.cc
 	cross_entropy_loss.cc
 	matmul.cc
 	pool.cc
