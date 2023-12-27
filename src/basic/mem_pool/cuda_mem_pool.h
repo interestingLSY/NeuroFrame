@@ -23,10 +23,7 @@ namespace NeuroFrame {
 // We get a 2.5x speedup on MNIST-conv and a 2x speedup on MNIST-mlp
 class CUDAMemPool: public AbstractMemPool {
 private:
-	std::unordered_map<size_t, std::vector<void*>> free_list;
-
-	// Free up all blocks in the free list, and clear it
-	void free_entire_free_list();
+	cudaMemPool_t mempool;
 
 public:
 	CUDAMemPool(const Device device);
