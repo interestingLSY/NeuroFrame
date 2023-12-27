@@ -19,14 +19,6 @@ Tensor::Tensor(const MemFrag &frag, const Device &dev, const dtype_t &dtype, con
 	shape(shape),
 	cgraph_node(std::make_shared<CGraph::CGraphNode>(CGraph::CGraphNode()))
 {
-	// Calculate stride
-	stride.resize(shape.size());
-	if (!shape.empty()) {
-		stride[shape.size() - 1] = 1;
-		for (int i = shape.size() - 2; i >= 0; i--) {
-			stride[i] = stride[i+1] * shape[i+1];
-		}
-	}
 }
 
 int64_t Tensor::get_elem_offset(const std::vector<int64_t> &pos) const {
@@ -35,7 +27,7 @@ int64_t Tensor::get_elem_offset(const std::vector<int64_t> &pos) const {
 	}
 	int64_t offset = first_elem_offset;
 	for (int i = 0; i < (int)pos.size(); i++) {
-		offset += pos[i] * stride[i];
+		offset = offset*shape[i] + pos[i];
 	}
 	return offset;
 }
@@ -215,13 +207,6 @@ std::string Tensor::to_string(int64_t max_display_per_dim /* default: 16 */, boo
 				result += ", ";
 			}
 		}
-		result += "], stride=[";
-		for (int i = 0; i < (int)stride.size(); ++i) {
-			result += std::to_string(stride[i]);
-			if (i != (int)stride.size() - 1) {
-				result += ", ";
-			}
-		}
 		result += "]";
 	}
 	result += ", device=";
@@ -248,14 +233,6 @@ Tensor::Tensor(const std::vector<int64_t> &shape, dtype_t dtype, Device device):
 	shape(shape),
 	cgraph_node(std::make_shared<CGraph::CGraphNode>(CGraph::CGraphNode()))
 {
-	// Calculate stride
-	stride.resize(shape.size());
-	if (!shape.empty()) {
-		stride[shape.size() - 1] = 1;
-		for (int i = shape.size() - 2; i >= 0; i--) {
-			stride[i] = stride[i+1] * shape[i+1];
-		}
-	}
 }
 
 Tensor Tensor::zeros(const std::vector<int64_t> &shape, dtype_t dtype, Device device) {

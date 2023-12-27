@@ -1,4 +1,5 @@
 add_library(neuroframe_backend_cuda STATIC
+	batch_norm.cu
 	broadcast.cu
 	convolution.cu
 	cross_entropy_loss.cu

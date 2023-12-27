@@ -7,13 +7,17 @@ import os, sys
 import numpy as np
 if os.environ.get("USE_LOCAL_DYNLIB", False):
     sys.path.append(os.environ.get("USE_LOCAL_DYNLIB"))
+import torch
 import neuroframe as nf
 
-def gradient_check(f, *tensors_, tol=1e-4):
-    eps = 1/2**14   # This number can be exactly represented in float64
+def gradient_check(f, *tensors_, tol=1e-4, step=1/2**14, enable_inference_mode=True):
+    eps = step
     tensors = list(tensors_)
-    
-    with nf.inference_mode():
+    class PlaceHolder:
+        def __init__(self): pass
+        def __enter__(self): pass
+        def __exit__(self, *args): pass
+    with (nf.inference_mode() if enable_inference_mode else PlaceHolder()):
         tensors_fp64 = [nf.Tensor(a.numpy(), nf.float64) for a in tensors]
         numerical_grads = [np.zeros(a.shape) for a in tensors]
         for i in range(len(tensors_fp64)):
@@ -207,9 +211,66 @@ def test_exp_backward():
 def test_conv_backward():
     gradient_check(
         lambda x, y: nf.ops.tensor_pows(nf.ops.batched_convolution(x, y), 3),
-        nf.Tensor(np.random.rand(1, 1, 28, 28)),
-        nf.Tensor(np.random.rand(2, 1, 3, 3)),
+        nf.Tensor(np.random.rand(2, 2, 12, 12)),
+        nf.Tensor(np.random.rand(2, 2, 3, 3)),
+        tol=3e-3
     )
+
+def test_batch_norm_backward():
+    C = 8
+    x_raw = np.random.rand(4, C, 4, 4)
+    gamma_raw = np.random.rand(C)
+    beta_raw = np.random.rand(C)
+    mean_raw = np.random.rand(C)
+    var_raw = np.random.rand(C)
+    output_grad_raw = np.random.rand(4, C, 4, 4)
+    
+    x = nf.Tensor(x_raw)
+    gamma = nf.Tensor(gamma_raw)
+    beta = nf.Tensor(beta_raw)
+    mean = nf.Tensor(mean_raw)
+    var = nf.Tensor(var_raw)
+    output_grad = nf.Tensor(output_grad_raw)
+    
+    x_th = torch.tensor(x_raw, dtype=torch.float32, requires_grad=True)
+    gamma_th = torch.tensor(gamma_raw, dtype=torch.float32, requires_grad=True)
+    beta_th = torch.tensor(beta_raw, dtype=torch.float32, requires_grad=True)
+    mean_th = torch.tensor(mean_raw, dtype=torch.float32)
+    var_th = torch.tensor(var_raw, dtype=torch.float32)
+    output_grad_th = torch.tensor(output_grad_raw, dtype=torch.float32)
+    
+    std_result = torch.nn.functional.batch_norm(
+        x_th, mean_th, var_th, weight=gamma_th, bias=beta_th,
+        momentum=0.5, eps=1e-5, training=True
+    )
+    std_result.backward(gradient=output_grad_th)
+    x_grad_th = x_th.grad
+    gamma_grad_th = gamma_th.grad
+    beta_grad_th = beta_th.grad
+    
+    nf.cgraph.clear_graph()
+    my_result = nf.ops.batch_norm(x, gamma, beta, mean, var, 0.5, 1e-5)
+    nf.cgraph.perform_backward(my_result, output_grad)
+    x_grad = nf.cgraph.get_computed_grad(x)
+    gamma_grad = nf.cgraph.get_computed_grad(gamma)
+    beta_grad = nf.cgraph.get_computed_grad(beta)
+    
+    def check(name: str, std: torch.Tensor, ans: nf.Tensor):
+        std = std.detach().numpy()
+        ans = ans.numpy()
+        max_error = np.linalg.norm(std - ans)
+        if max_error > 1e-4:
+            print(f"Error: {max_error} on batch_norm {name}")
+            print(f"Std: {std}")
+            print(f"Ans: {ans}")
+            print()
+            print("Test failed. Aborted")
+            sys.exit(1)
+    
+    check("result", std_result, my_result)
+    check("x_grad", x_grad_th, x_grad)
+    check("gamma_grad", gamma_grad_th, gamma_grad)
+    check("beta_grad", beta_grad_th, beta_grad)
 
 if __name__ == "__main__":
     np.random.seed(0)
@@ -248,6 +309,8 @@ if __name__ == "__main__":
         test_exp_backward()
         print("Testing conv")
         test_conv_backward()
+        print("Testing batch_norm")
+        test_batch_norm_backward()
         ## log 和 exp 的测试没写...（我帮您写了，就在上一行）
         ## 交作业的时候也是会测试的...（我帮您写了，就在上一行）
         

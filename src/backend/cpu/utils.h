@@ -48,4 +48,14 @@ static constexpr T get_max() {
 	}
 }
 
+// Some stuff for indexing into an 1-D array
+#define INDEX_2D(dim1, dim2, index1, index2) \
+    (((int64_t)index1) * (dim2) + (index2))
+#define INDEX_3D(dim1, dim2, dim3, index1, index2, index3) \
+    (((int64_t)index1) * (dim2) * (dim3) + ((int64_t)index2) * (dim3) + (index3))
+#define INDEX_4D(dim1, dim2, dim3, dim4, index1, index2, index3, index4) \
+    (((int64_t)index1) * (dim2) * (dim3) * (dim4) + ((int64_t)index2) * (dim3) * (dim4) + ((int64_t)index3) * (dim4) + (index4))
+#define INDEX_5D(dim1, dim2, dim3, dim4, dim5, index1, index2, index3, index4, index5) \
+    (((int64_t)index1) * (dim2) * (dim3) * (dim4) * (dim5) + ((int64_t)index2) * (dim3) * (dim4) * (dim5) + ((int64_t)index3) * (dim4) * (dim5) + (index4) * (dim5) + (index5))
+
 }

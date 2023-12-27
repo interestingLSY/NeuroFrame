@@ -3,6 +3,7 @@
 #include <pybind11/stl.h>
 using namespace pybind11::literals;	// For "_a" suffix
 
+#include "src/op/batch_norm.h"
 #include "src/op/broadcast.h"
 #include "src/op/convolution.h"
 #include "src/op/cross_entropy_loss.h"
@@ -26,6 +27,8 @@ void init_ops(pybind11::module& m) {
 	
 	ops_m.def("batched_convolution", &NeuroFrame::batched_convolution, "input (BCHW)"_a, "kernel (C_out, C_in, H, W)"_a);
 
+	ops_m.def("batch_norm", &NeuroFrame::batch_norm, "input (NCHW)"_a, "gamma"_a, "beta"_a,  "running_mean"_a, "running_var"_a, "momentum"_a, "epsilon"_a);
+	
 	ops_m.def("broadcast_to", &NeuroFrame::broadcast_to, "input"_a, "target_shape"_a);
 
 	ops_m.def("cross_entropy_loss", &NeuroFrame::cross_entropy_loss, "input"_a, "ground_truth"_a);

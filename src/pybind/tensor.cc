@@ -21,7 +21,6 @@ void init_tensor(pybind11::module& m) {
 
 		.def_readwrite("first_elem_offset", &Tensor::first_elem_offset)
 		.def_readwrite("shape", &Tensor::shape)
-		.def_readwrite("stride", &Tensor::stride)
 
 		.def("numel", &Tensor::numel)
 		.def("data_ptr", &Tensor::data_ptr, pybind11::return_value_policy::reference)

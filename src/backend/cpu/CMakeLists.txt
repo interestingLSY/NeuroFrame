@@ -1,4 +1,5 @@
 add_library(neuroframe_backend_cpu STATIC
+	batch_norm.cc
 	broadcast.cc
 	convolution.cc
 	cross_entropy_loss.cc

@@ -2,6 +2,7 @@ add_library(neuroframe_op STATIC
 	op.cc
 	op_context.cc
 	op_utils.cc
+	batch_norm.cc
 	broadcast.cc
 	convolution.cc
 	cross_entropy_loss.cc

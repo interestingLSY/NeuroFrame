@@ -58,9 +58,10 @@ public:
 	// dimensions of the tensor. In other words, the tensor is always
 	// "continuous" in memory. I think this is a good design because it makes
 	// the implementation of kernels much easier.
+	// 
+	// Update. `stride` is deleted since it is useless
 	int64_t first_elem_offset;
 	std::vector<int64_t> shape;
-	std::vector<int64_t> stride;
 
 	// The corresponding CGraphNode in the compute graph
 	std::shared_ptr<CGraph::CGraphNode> cgraph_node;
