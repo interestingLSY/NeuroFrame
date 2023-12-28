@@ -56,4 +56,9 @@ Tensor NAME(const Tensor &input, int axis) { \
 
 DEFINE_TENSOR_REDUCTION_OP(tensor_reduction_sum, [](T a, T b) -> T {return a + b;})
 
+DEFINE_TENSOR_REDUCTION_OP(tensor_reduction_max, [](T a, T b) -> T {return a > b ? a : b;})
+
+DEFINE_TENSOR_REDUCTION_OP(tensor_reduction_min, [](T a, T b) -> T {return a < b ? a : b;})
+
+
 }

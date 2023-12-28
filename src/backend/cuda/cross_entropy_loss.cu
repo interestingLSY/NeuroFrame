@@ -78,7 +78,10 @@ __global__ void batched_softmax_cross_entropy_loss_forward_kernel(
 
 	// Step 2. Calculate the cross entropy loss
 	if (threadIdx.x == 0) {
-		loss_result[batch_id] = -__log_d(my_softmax_output[ground_truth[batch_id]]);
+		T x = my_softmax_output[ground_truth[batch_id]];
+		const T thres = (T)1e-8;
+		x = x < thres ? thres : x;
+		loss_result[batch_id] = -__log_d(x);
 	}
 }
 

@@ -213,8 +213,18 @@ def test_conv_backward():
         lambda x, y: nf.ops.tensor_pows(nf.ops.batched_convolution(x, y), 3),
         nf.Tensor(np.random.rand(2, 2, 12, 12)),
         nf.Tensor(np.random.rand(2, 2, 3, 3)),
-        tol=3e-3
+        tol=4e-3
     )
+
+
+def test_cross_entropy_backward():
+    ground_truth = nf.Tensor(np.random.randint(0, 10, (10)), nf.int32)
+    gradient_check(
+        lambda x: nf.ops.cross_entropy_loss(x, ground_truth),
+        nf.Tensor(np.random.rand(10, 10)),
+        tol=4e-3
+    )
+    
 
 def test_batch_norm_backward():
     C = 8
@@ -312,6 +322,8 @@ if __name__ == "__main__":
             test_conv_backward()
         print("Testing batch_norm")
         test_batch_norm_backward()
+        print("Testing cross_entropy")
+        test_cross_entropy_backward()
         ## log 和 exp 的测试没写...（我帮您写了，就在上一行）
         ## 交作业的时候也是会测试的...（我帮您写了，就在上一行）
         

@@ -12,12 +12,20 @@ namespace NeuroFrame::Backend::CUDA {
 
 enum class REDUTCION_OP_TYPE {
 	ADD,
+	MIN,
+	MAX
 };
 
 template <typename T, REDUTCION_OP_TYPE OP_TYPE>
 __device__ __forceinline__ T perform_reduction_op(const T &a, const T &b) {
 	if constexpr (OP_TYPE == REDUTCION_OP_TYPE::ADD) {
 		return a + b;
+	} else if constexpr (OP_TYPE == REDUTCION_OP_TYPE::MIN) {
+		return a < b ? a : b;
+	} else if constexpr (OP_TYPE == REDUTCION_OP_TYPE::MAX) {
+		return a > b ? a : b;
+	} else {
+		assert(0);
 	}
 }
 
@@ -72,6 +80,10 @@ Tensor name(const Tensor &input, int axis) {\
 }
 
 DEFINE_TENSOR_REDUCTION_OP(tensor_reduction_sum, REDUTCION_OP_TYPE::ADD)
+
+DEFINE_TENSOR_REDUCTION_OP(tensor_reduction_min, REDUTCION_OP_TYPE::MIN)
+
+DEFINE_TENSOR_REDUCTION_OP(tensor_reduction_max, REDUTCION_OP_TYPE::MAX)
 
 
 }

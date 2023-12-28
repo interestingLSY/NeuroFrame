@@ -67,7 +67,7 @@ void memcpy(void* dst_ptr, const Device &dst_dev, const void* src_ptr, const Dev
 	} else if (dst_dev.type == device_type_t::CPU && src_dev.type == device_type_t::CUDA) {
 		// CUDA -> CPU
 		src_dev.switch_to();
-		cudaError_t err = cudaMemcpy(dst_ptr, src_ptr, length, cudaMemcpyDeviceToHost);
+		cudaError_t err = cudaMemcpyAsync(dst_ptr, src_ptr, length, cudaMemcpyDeviceToHost);
 		if (err != cudaSuccess) {
 			print_cuda_error();
 			LOG_FATAL("Failed to copy memory from CUDA to CPU");
@@ -75,7 +75,7 @@ void memcpy(void* dst_ptr, const Device &dst_dev, const void* src_ptr, const Dev
 	} else if (dst_dev.type == device_type_t::CUDA && src_dev.type == device_type_t::CPU) {
 		// CPU -> CUDA
 		dst_dev.switch_to();
-		cudaError_t err = cudaMemcpy(dst_ptr, src_ptr, length, cudaMemcpyHostToDevice);
+		cudaError_t err = cudaMemcpyAsync(dst_ptr, src_ptr, length, cudaMemcpyHostToDevice);
 		if (err != cudaSuccess) {
 			print_cuda_error();
 			LOG_FATAL("Failed to copy memory from CPU to CUDA");
@@ -86,7 +86,7 @@ void memcpy(void* dst_ptr, const Device &dst_dev, const void* src_ptr, const Dev
 			LOG_FATAL("Cannot copy memory between different CUDA devices");
 		} else {
 			// The two memory blocks reside on the same device
-			cudaError_t err = cudaMemcpy(dst_ptr, src_ptr, length, cudaMemcpyDeviceToDevice);
+			cudaError_t err = cudaMemcpyAsync(dst_ptr, src_ptr, length, cudaMemcpyDeviceToDevice);
 			if (err != cudaSuccess) {
 				print_cuda_error();
 				LOG_FATAL("Failed to copy memory from CUDA to CUDA");

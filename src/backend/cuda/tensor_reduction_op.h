@@ -6,4 +6,8 @@ namespace NeuroFrame::Backend::CUDA {
 
 Tensor tensor_reduction_sum(const Tensor &input, int axis);
 
+Tensor tensor_reduction_min(const Tensor &input, int axis);
+
+Tensor tensor_reduction_max(const Tensor &input, int axis);
+
 }
