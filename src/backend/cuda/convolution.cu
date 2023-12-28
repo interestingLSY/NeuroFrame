@@ -57,7 +57,10 @@ Tensor convolution_forward(const Tensor &input_img, const Tensor &kernel, const 
 	const int64_t kh = kernel.shape[2];
 	const int64_t kw = kernel.shape[3];
 
-	Tensor result({b, c_out, h, w}, input_img.dtype, input_img.device);
+	const int64_t out_h = (h + 2*(kh/2) - (dilation*(kh-1)+1)) / stride + 1;
+	const int64_t out_w = (w + 2*(kw/2) - (dilation*(kw-1)+1)) / stride + 1;
+
+	Tensor result({b, c_out, out_h, out_w}, input_img.dtype, input_img.device);
 
 	// Get alpha and beta
 	float float_one = 1.0, float_zero = 0.0;
@@ -80,7 +83,7 @@ Tensor convolution_forward(const Tensor &input_img, const Tensor &kernel, const 
 
 	cudnnDataType_t cudnn_datatype = get_cudnn_data_type(input_img.dtype);
 	CUDNN_CHECK(cudnnSetTensor4dDescriptor(input_desc, CUDNN_TENSOR_NCHW, cudnn_datatype, b, c_in, h, w));
-	CUDNN_CHECK(cudnnSetTensor4dDescriptor(output_desc, CUDNN_TENSOR_NCHW, cudnn_datatype, b, c_out, h, w));
+	CUDNN_CHECK(cudnnSetTensor4dDescriptor(output_desc, CUDNN_TENSOR_NCHW, cudnn_datatype, b, c_out, out_h, out_w));
 	CUDNN_CHECK(cudnnSetFilter4dDescriptor(kernel_desc, cudnn_datatype, CUDNN_TENSOR_NCHW, c_out, c_in, kh, kw));
 	CUDNN_CHECK(cudnnSetConvolution2dDescriptor(conv_desc, kh/2, kw/2, stride, stride, dilation, dilation, CUDNN_CROSS_CORRELATION, cudnn_datatype));
 
@@ -120,13 +123,15 @@ Tensor convolution_forward(const Tensor &input_img, const Tensor &kernel, const 
 }
 
 std::tuple<Tensor, Tensor> convolution_backward(const Tensor &output_grad, const Tensor &input_img, const Tensor &kernel, const int64_t stride, const int64_t dilation) {
-	const int64_t b = output_grad.shape[0];
+	const int64_t b = input_img.shape[0];
 	const int64_t c_out = output_grad.shape[1];
-	const int64_t h = output_grad.shape[2];
-	const int64_t w = output_grad.shape[3];
+	const int64_t h = input_img.shape[2];
+	const int64_t w = input_img.shape[3];
 	const int64_t c_in = kernel.shape[1];
 	const int64_t kh = kernel.shape[2];
 	const int64_t kw = kernel.shape[3];
+	const int64_t out_h = output_grad.shape[2];
+	const int64_t out_w = output_grad.shape[3];
 
 	Tensor input_grad({b, c_in, h, w}, output_grad.dtype, output_grad.device);
 	Tensor kernel_grad({c_out, c_in, kh, kw}, output_grad.dtype, output_grad.device);
@@ -152,7 +157,7 @@ std::tuple<Tensor, Tensor> convolution_backward(const Tensor &output_grad, const
 
 	cudnnDataType_t cudnn_datatype = get_cudnn_data_type(output_grad.dtype);
 	CUDNN_CHECK(cudnnSetTensor4dDescriptor(input_grad_desc, CUDNN_TENSOR_NCHW, cudnn_datatype, b, c_in, h, w));
-	CUDNN_CHECK(cudnnSetTensor4dDescriptor(output_grad_desc, CUDNN_TENSOR_NCHW, cudnn_datatype, b, c_out, h, w));
+	CUDNN_CHECK(cudnnSetTensor4dDescriptor(output_grad_desc, CUDNN_TENSOR_NCHW, cudnn_datatype, b, c_out, out_h, out_w));
 	CUDNN_CHECK(cudnnSetFilter4dDescriptor(kernel_desc, cudnn_datatype, CUDNN_TENSOR_NCHW, c_out, c_in, kh, kw));
 	CUDNN_CHECK(cudnnSetConvolution2dDescriptor(conv_desc, kh/2, kw/2, stride, stride, dilation, dilation, CUDNN_CROSS_CORRELATION, cudnn_datatype));
 
