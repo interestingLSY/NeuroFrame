@@ -118,7 +118,7 @@ void init_tensor(pybind11::module& m) {
 		.def("numpy", [](Tensor &instance) {
 			// Dump data to vector
 			int64_t numel = instance.numel();
-			Tensor instance_1d = instance.reshape({numel});
+			Tensor instance_1d = instance.reshape({numel}).cpu();
 			std::vector<double> data;
 			for (int i = 0; i < numel; ++i) {
 				data.push_back(instance_1d.get_elem({i}).as_scalar().as_double());
