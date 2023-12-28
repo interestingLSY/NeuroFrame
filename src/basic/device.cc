@@ -13,14 +13,9 @@ Device::Device(device_type_t type, int device_index):
 	if (type != device_type_t::CUDA && device_index != 0) {
 		LOG_FATAL("Only device_index 0 is supported for CPU");
 	}
-	// Create the CUDA stream if necessary
 	if (type == device_type_t::CUDA) {
 		this->switch_to();
-		cudaError_t err = cudaStreamCreate(&stream);
-		if (err != cudaSuccess) {
-			print_cuda_error();
-			LOG_FATAL("Failed to create CUDA stream");
-		}
+		stream = cudaStreamDefault;
 	}
 }
 

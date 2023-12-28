@@ -33,6 +33,12 @@ public:
 	inline bool is_cuda() const {
 		return type == device_type_t::CUDA;
 	}
+
+	inline void synchronize() const {
+		if (is_cuda()) {
+			cudaStreamSynchronize(stream);
+		}
+	}
 	
 	inline static Device cpu() {
 		return Device(device_type_t::CPU);
