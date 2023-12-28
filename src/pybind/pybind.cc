@@ -3,6 +3,7 @@ using namespace pybind11::literals;	// For "_a" suffix
 
 #include "basic.h"
 #include "cgraph.h"
+#include "misc.h"
 #include "ops.h"
 #include "optim.h"
 #include "tensor.h"
@@ -12,6 +13,7 @@ PYBIND11_MODULE(neuroframe, m) {
 
 	init_basic(m);
 	init_cgraph(m);
+	init_misc(m);
 	init_ops(m);
 	init_optim(m);
 	init_tensor(m);

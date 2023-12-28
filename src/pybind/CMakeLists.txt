@@ -3,6 +3,7 @@ set(PYMODULE_NAME "neuroframe")
 pybind11_add_module(${PYMODULE_NAME} MODULE
 	basic.cc
 	cgraph.cc
+	misc.cc
 	ops.cc
 	optim.cc
 	pybind.cc
