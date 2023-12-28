@@ -56,4 +56,12 @@ void sgd_grad_update(Tensor &weight, const Tensor &grad, Tensor &momentum, doubl
 	);
 }
 
+// adam_grad_update
+void adam_grad_update(Tensor &weight, const Tensor &grad, Tensor &momentum, Tensor &geo_mean, int64_t cur_timestamp, double learning_rate, double beta1, double beta2, double eps) {
+	DISPATCH_TO_BACKEND(
+		weight.device.type,
+		adam_grad_update(weight, grad, momentum, geo_mean, cur_timestamp, learning_rate, beta1, beta2, eps)
+	);
+}
+
 }

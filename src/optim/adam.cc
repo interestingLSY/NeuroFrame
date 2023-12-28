@@ -3,8 +3,7 @@
 #include <cmath>
 
 #include "src/basic/inference_mode.h"
-#include "src/op/tensor_binary_op.h"
-#include "src/op/tensor_scalar_op.h"
+#include "src/op/misc.h"
 
 namespace NeuroFrame {
 
@@ -54,57 +53,17 @@ void AdamOptimizer::step(double learning_rate) {
 
 		optim_state->cur_timestep += 1;
 
-		optim_state->momentum = tensor_add(
-			tensor_muls(
-				optim_state->momentum,
-				Scalar(beta1, tensor.dtype)
-			),
-			tensor_muls(
-				grad,
-				Scalar(1.0 - beta1, tensor.dtype)
-			)
-		);
-
-		optim_state->geo_mean = tensor_add(
-			tensor_muls(
-				optim_state->geo_mean,
-				Scalar(beta2, tensor.dtype)
-			),
-			tensor_muls(
-				tensor_mul(
-					grad,
-					grad
-				),
-				Scalar(1.0 - beta2, tensor.dtype)
-			)
-		);
-
-		Tensor adjusted_momentum = tensor_divs(
-			optim_state->momentum,
-			Scalar(1.0 - std::pow(beta1, optim_state->cur_timestep), tensor.dtype)
-		);
-		Tensor adjusted_geo_mean = tensor_divs(
-			optim_state->geo_mean,
-			Scalar(1.0 - std::pow(beta2, optim_state->cur_timestep), tensor.dtype)
-		);
-
-		Tensor new_weight = tensor_sub(
+		adam_grad_update(
 			tensor,
-			tensor_muls(
-				tensor_div(
-					adjusted_momentum,
-					tensor_adds(
-						tensor_pows(
-							adjusted_geo_mean,
-							Scalar(0.5, tensor.dtype)
-						),
-						Scalar(eps, tensor.dtype)
-					)
-				),
-				Scalar(learning_rate, tensor.dtype)
-			)
+			grad,
+			optim_state->momentum,
+			optim_state->geo_mean,
+			optim_state->cur_timestep,
+			learning_rate,
+			beta1,
+			beta2,
+			eps
 		);
-		tensor.mem_frag.copy_from(new_weight.mem_frag);
 	}
 	guard.__exit__();
 }
