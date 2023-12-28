@@ -1,6 +1,7 @@
 #include "misc.h"
 
 #include <cstdint>
+#include <cmath>
 #include <omp.h>
 
 #include "utils.h"
@@ -78,6 +79,49 @@ void sgd_grad_update(Tensor &weight, const Tensor &grad, Tensor &momentum, doubl
 			(T) learning_rate,
 			(T) momentum_factor,
 			(T) weight_decay,
+			num_elements
+		)
+	);
+}
+
+template<typename T>
+void adam_grad_update_kernel(
+	T* __restrict__ weight,
+	const T* __restrict__ grad,
+	T* __restrict__ momentum,
+	T* __restrict__ velocity,
+	T learning_rate,
+	T beta1,
+	T beta2,
+	T eps,
+	int64_t cur_timestep,
+	int64_t num_elements
+) {
+	#pragma omp parallel for schedule(static)
+	for (int64_t i = 0; i < num_elements; i++) {
+		T cur_grad = grad[i];
+		momentum[i] = beta1 * momentum[i] + (1.0 - beta1) * cur_grad;
+		velocity[i] = beta2 * velocity[i] + (1.0 - beta2) * cur_grad * cur_grad;
+		T adjusted_momentum = momentum[i] / (1.0 - std::pow(beta1, cur_timestep));
+		T adjusted_velocity = velocity[i] / (1.0 - std::pow(beta2, cur_timestep));
+		weight[i] = weight[i] - learning_rate * adjusted_momentum / (std::sqrt(adjusted_velocity) + eps);
+	}
+}
+
+void adam_grad_update(Tensor &weight, const Tensor &grad, Tensor &momentum, Tensor &velocity, int cur_timestamp, double learning_rate, double beta1, double beta2, double eps) {
+	int64_t num_elements = weight.numel();
+	DISPATCH_ON_DTYPE_CPU_BACKEND(
+		weight.dtype,
+		adam_grad_update_kernel(
+			(T*) weight.data_ptr(),
+			(const T*) grad.data_ptr(),
+			(T*) momentum.data_ptr(),
+			(T*) velocity.data_ptr(),
+			(T) learning_rate,
+			(T) beta1,
+			(T) beta2,
+			(T) eps,
+			cur_timestamp,
 			num_elements
 		)
 	);
