@@ -8,9 +8,9 @@
 #include <cuda_runtime.h>
 
 #define CUDA_CHECK(cmd) do { \
-    cudaError_t result = cmd; \
-    if (result != cudaSuccess) { \
-        printf("[ERROR] CUDA error %s:%d '%s' : %s\n", __FILE__, __LINE__, #cmd, cudaGetErrorString(result)); \
+    cudaError_t result_fshoagh2pvo2o3o4hoadslj = cmd; \
+    if ((result_fshoagh2pvo2o3o4hoadslj) != cudaSuccess) { \
+        printf("[ERROR] CUDA error %s:%d '%s' : %s\n", __FILE__, __LINE__, #cmd, cudaGetErrorString(result_fshoagh2pvo2o3o4hoadslj)); \
         exit(-1); \
     } \
 } while(0)
