@@ -1,5 +1,6 @@
 *.nsys-rep
 *.sqlite
+/log
 
 /build
 /.vscode
