@@ -16,6 +16,9 @@ struct CGraphEdge;
 // Multiple tensors can share the same GradInfo object as long as they are the
 // same tensor (i.e. they are created/assigned from the same tensor)
 struct CGraphNode {
+	// Whether it is focused by the optimizer
+	bool is_focused;
+
 	// The gradient of the tensor that the CGraphNode represents
 	std::optional<Tensor> grad;
 

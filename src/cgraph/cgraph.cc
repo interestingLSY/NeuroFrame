@@ -92,8 +92,9 @@ static void perform_topology_sort(
 		if (node->ingress_edge) {
 			node->ingress_edge->num_ready_output += 1;
 			if (node->ingress_edge->is_all_output_ready()) {
+				std::shared_ptr<CGraphEdge> ingress_edge = node->ingress_edge;
 				on_edge_ready(node->ingress_edge);
-				for (std::shared_ptr<CGraphNode> &edge_input_node : node->ingress_edge->input_nodes) {
+				for (std::shared_ptr<CGraphNode> &edge_input_node : ingress_edge->input_nodes) {
 					edge_input_node->num_ready_egress_edges += 1;
 					if (edge_input_node->is_all_egress_edges_ready()) {
 						ready_nodes.push_back(edge_input_node);
@@ -116,6 +117,9 @@ std::vector<Tensor> perform_backward(Tensor &src, Tensor &src_grad, bool log_dow
 			if (log_down_all_grads) {
 				grads.push_back(node->grad.value());
 			}
+			
+			// Clear all egress edges
+			node->egress_edges.clear();
 		},
 		[&grads, log_down_all_grads](std::shared_ptr<CGraphEdge> edge) {
 			std::vector<Tensor> output_grads;
@@ -150,6 +154,14 @@ std::vector<Tensor> perform_backward(Tensor &src, Tensor &src_grad, bool log_dow
 						input_grads[i],
 						temp_ctx
 					);
+				}
+			}
+
+			// Clear grads & input edge for non-focused output nodes
+			for (std::shared_ptr<CGraphNode> &output_node : edge->output_nodes) {
+				if (!output_node->is_focused) {
+					output_node->ingress_edge = nullptr;
+					output_node->grad = std::nullopt;
 				}
 			}
 		}

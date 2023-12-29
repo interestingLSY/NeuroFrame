@@ -5,6 +5,7 @@ namespace NeuroFrame::CGraph {
 CGraphNode::CGraphNode()
 {
 	this->clear_cgraph_elements();
+	this->is_focused = false;
 }
 
 CGraphNode::~CGraphNode() {

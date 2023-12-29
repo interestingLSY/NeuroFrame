@@ -12,11 +12,13 @@ void Optimizer::add_to_focus_list(const Tensor &tensor) {
 			LOG_FATAL("The tensor is already in the optimizer's focus list");
 		}
 	}
+	node->is_focused = true;
 	focused_nodes.push_back(tensor);
 }
 
 void Optimizer::remove_from_focus_list(const Tensor &tensor) {
 	std::shared_ptr<CGraph::CGraphNode> node = tensor.cgraph_node;
+	node->is_focused = false;
 	for (auto it = focused_nodes.begin(); it != focused_nodes.end(); ++it) {
 		if (it->cgraph_node == node) {
 			focused_nodes.erase(it);
