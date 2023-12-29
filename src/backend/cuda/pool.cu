@@ -2,154 +2,154 @@
 
 #include <stdexcept>
 #include <cuda_runtime.h>
+#include <cudnn.h>
 
 #include "src/tensor/tensor.h"
 #include "src/basic/log.h"
 #include "utils.h"
+#include "cudnn_utils.h"
 
 namespace NeuroFrame::Backend::CUDA {
 
-// pooling kernel
-// Grid size: [batch_size, input_height/pool_size]
-// Block size: [min(input_width/pool_size, 512)]
-// Each thread is responsible for one block
-template<typename T>
-__global__ void pool_kernel(
-	T* output,			// [batch_size, input_height/pool_size, input_width/pool_size]
-	int8_t* max_mask,	// [batch_size, input_height, input_width]
-	const T* input,		// [batch_size, input_height, input_width]
-	int64_t input_height,
-	int64_t input_width,
-	int64_t pool_size,
-	int64_t batch_size
-) {
-	int64_t batch_index = blockIdx.x;
-	int64_t pool_y_index = blockIdx.y;
-	for (int64_t pool_x_index = threadIdx.x; pool_x_index < input_width/pool_size; pool_x_index += blockDim.x) {
-		int64_t max_offset_x = 0, max_offset_y = 0;
-		const T* cur_pool = input
-			+ batch_index*input_width*input_height
-			+ pool_y_index*pool_size*input_width
-			+ pool_x_index*pool_size;
-		T cur_max = cur_pool[0];
-		for (int64_t i = 0; i < pool_size; ++i) {
-			for (int64_t j = 0; j < pool_size; ++j) {
-				T cur = cur_pool[i*input_width + j];
-				if (cur > cur_max) {
-					cur_max = cur;
-					max_offset_x = j;
-					max_offset_y = i;
-				}
-			}
-		}
-		// printf("%f\n", (double)cur_max);
-		output[
-			batch_index*(input_width/pool_size)*(input_height/pool_size)
-			+ pool_y_index*(input_width/pool_size)
-			+ pool_x_index] = cur_max;
-		max_mask[
-			batch_index*input_width*input_height
-			+ (pool_y_index*pool_size + max_offset_y)*input_width
-			+ pool_x_index*pool_size + max_offset_x] = 1;
-	}
-}
-
-// Return value: (output, max_mask)
-std::pair<Tensor, Tensor> pool_forward(const Tensor &input, int pool_size) {
-	if (input.dim() < 2) {
-		LOG_FATAL("Input tensor must have at least 2 dimensions");
+Tensor pool_forward(const Tensor &input, int pool_size, int stride, int padding) {
+	if (input.dim() != 4) {
+		LOG_FATAL("Input tensor must have 4 dimensions");
 	}
 
-	int64_t input_height = input.shape[input.shape.size()-2];
-	int64_t input_width = input.shape[input.shape.size()-1];
-	if (input_height % pool_size != 0 || input_width % pool_size != 0) {
-		LOG_FATAL("Input tensor's height and width must be divisible by pool_size");
+	int64_t n = input.shape[0];
+	int64_t c = input.shape[1];
+	int64_t h = input.shape[2];
+	int64_t w = input.shape[3];
+	int out_n, out_c, out_h, out_w;
+	
+	static cudnnPoolingDescriptor_t pool_desc;
+	static cudnnTensorDescriptor_t input_desc, output_desc;
+	static bool desc_inited = false;
+	if (!desc_inited) {
+		CUDNN_CHECK(cudnnCreatePoolingDescriptor(&pool_desc));
+		CUDNN_CHECK(cudnnCreateTensorDescriptor(&input_desc));
+		CUDNN_CHECK(cudnnCreateTensorDescriptor(&output_desc));
+		desc_inited = true;
 	}
-
-	std::vector<int64_t> output_shape;
-	int64_t batch_size = 1;
-	for (int i = 0; i < (int)input.shape.size()-2; ++i) {
-		output_shape.push_back(input.shape[i]);
-		batch_size *= input.shape[i];
-	}
-	output_shape.push_back(input.shape[input.shape.size()-2]/pool_size);
-	output_shape.push_back(input.shape[input.shape.size()-1]/pool_size);
-	Tensor output(output_shape, input.dtype, input.device);
-	Tensor max_mask = Tensor::zeros(input.shape, dtype_t::INT8, input.device);
-
-	DISPATCH_ON_DTYPE_CUDA_BACKEND(input.dtype, pool_kernel<<<dim3(batch_size, input_height/pool_size), std::min(input_width/pool_size, (int64_t)512)>>>(
-		(T*) output.data_ptr(),
-		(int8_t*) max_mask.data_ptr(),
-		(const T*) input.data_ptr(),
-		input_height,
-		input_width,
+	CUDNN_CHECK(cudnnSetTensor4dDescriptor(
+		input_desc,
+		CUDNN_TENSOR_NCHW,
+		get_cudnn_data_type(input.dtype),
+		n,
+		c,
+		h,
+		w
+	));
+	CUDNN_CHECK(cudnnSetPooling2dDescriptor(
+		pool_desc,
+		CUDNN_POOLING_MAX,
+		CUDNN_NOT_PROPAGATE_NAN,
 		pool_size,
-		batch_size
+		pool_size,
+		padding,
+		padding,
+		stride,
+		stride
+	));
+	CUDNN_CHECK(cudnnGetPooling2dForwardOutputDim(
+		pool_desc,
+		input_desc,
+		&out_n,
+		&out_c,
+		&out_h,
+		&out_w
+	));
+	CUDNN_CHECK(cudnnSetTensor4dDescriptor(
+		output_desc,
+		CUDNN_TENSOR_NCHW,
+		get_cudnn_data_type(input.dtype),
+		out_n,
+		out_c,
+		out_h,
+		out_w
+	));
+	assert(out_n == n);
+	assert(out_c == c);
+
+	std::vector<int64_t> output_shape = {n, c, out_h, out_w};
+	Tensor output(output_shape, input.dtype, input.device);
+
+	auto [alpha_ptr, beta_ptr] = get_alpha_beta_ptrs(input.dtype);
+
+	CUDNN_CHECK(cudnnPoolingForward(
+		cudnn_handle,
+		pool_desc,
+		alpha_ptr,
+		input_desc,
+		input.data_ptr(),
+		beta_ptr,
+		output_desc,
+		output.data_ptr()
 	));
 
-	return std::make_pair(output, max_mask);
+	return output;
 }
 
-// pooling (backward) kernel
-// Grid size: [batch_size, input_height/pool_size]
-// Block size: [min(input_width/pool_size, 512)]
-// Each thread is responsible for one block
-template<typename T>
-__global__ void pool_backward_kernel(
-	T* input_grad,
-	const T* output_grad,
-	const int8_t* max_mask,
-	int64_t input_height,
-	int64_t input_width,
-	int64_t pool_size,
-	int64_t batch_size
-) {
-	int64_t batch_index = blockIdx.x;
-	int64_t pool_y_index = blockIdx.y;
-	for (int64_t pool_x_index = threadIdx.x; pool_x_index < input_width/pool_size; pool_x_index += blockDim.x) {
-		T* cur_pool = input_grad
-			+ batch_index*input_width*input_height
-			+ pool_y_index*pool_size*input_width
-			+ pool_x_index*pool_size;
-		T cur_output_grad = output_grad[
-			+ batch_index*(input_width/pool_size)*(input_height/pool_size)
-			+ pool_y_index*(input_width/pool_size)
-			+ pool_x_index];
-		const int8_t* cur_max_mask = max_mask
-			+ batch_index*input_width*input_height
-			+ pool_y_index*pool_size*input_width
-			+ pool_x_index*pool_size;
-		for (int64_t i = 0; i < pool_size; ++i) {
-			for (int64_t j = 0; j < pool_size; ++j) {
-				cur_pool[i*input_width + j] = cur_output_grad * 
-					(T)cur_max_mask[i*input_width + j];
-			}
-		}
+Tensor pool_backward(const Tensor &output_grad, const Tensor &input, const Tensor &output, int pool_size, int stride, int padding) {
+	static cudnnPoolingDescriptor_t pool_desc;
+	static cudnnTensorDescriptor_t input_desc, output_desc;	// input_desc and input_grad_desc are the same thing
+	static bool desc_inited = false;
+	if (!desc_inited) {
+		CUDNN_CHECK(cudnnCreatePoolingDescriptor(&pool_desc));
+		CUDNN_CHECK(cudnnCreateTensorDescriptor(&input_desc));
+		CUDNN_CHECK(cudnnCreateTensorDescriptor(&output_desc));
+		desc_inited = true;
 	}
-}
 
-Tensor pool_backward(const Tensor &output_grad, const Tensor &max_mask, int pool_size) {
-	int64_t input_height = output_grad.shape[output_grad.shape.size()-2]*pool_size;
-	int64_t input_width = output_grad.shape[output_grad.shape.size()-1]*pool_size;
+	int64_t n = input.shape[0];
+	int64_t c = input.shape[1];
+	int64_t h = input.shape[2];
+	int64_t w = input.shape[3];
+	int64_t out_h = output.shape[2];
+	int64_t out_w = output.shape[3];
 
-	std::vector<int64_t> input_grad_shape;
-	int64_t batch_size = 1;
-	for (int i = 0; i < (int)output_grad.shape.size()-2; ++i) {
-		input_grad_shape.push_back(output_grad.shape[i]);
-		batch_size *= output_grad.shape[i];
-	}
-	input_grad_shape.push_back(input_height);
-	input_grad_shape.push_back(input_width);
-	Tensor input_grad(input_grad_shape, output_grad.dtype, output_grad.device);
-
-	DISPATCH_ON_DTYPE_CUDA_BACKEND(output_grad.dtype, pool_backward_kernel<<<dim3(batch_size, input_height/pool_size), std::min(input_width/pool_size, (int64_t)512)>>>(
-		(T*) input_grad.data_ptr(),
-		(const T*) output_grad.data_ptr(),
-		(const int8_t*) max_mask.data_ptr(),
-		input_height,
-		input_width,
+	CUDNN_CHECK(cudnnSetTensor4dDescriptor(
+		input_desc,
+		CUDNN_TENSOR_NCHW,
+		get_cudnn_data_type(input.dtype),
+		n, c, h, w
+	));
+	CUDNN_CHECK(cudnnSetTensor4dDescriptor(
+		output_desc,
+		CUDNN_TENSOR_NCHW,
+		get_cudnn_data_type(output.dtype),
+		n, c, out_h, out_w
+	));
+	CUDNN_CHECK(cudnnSetPooling2dDescriptor(
+		pool_desc,
+		CUDNN_POOLING_MAX,
+		CUDNN_NOT_PROPAGATE_NAN,
 		pool_size,
-		batch_size
+		pool_size,
+		padding,
+		padding,
+		stride,
+		stride
+	));
+
+	std::vector<int64_t> input_grad_shape = {n, c, h, w};
+	Tensor input_grad(input_grad_shape, input.dtype, input.device);
+
+	auto [alpha_ptr, beta_ptr] = get_alpha_beta_ptrs(input.dtype);
+
+	CUDNN_CHECK(cudnnPoolingBackward(
+		cudnn_handle,
+		pool_desc,
+		alpha_ptr,
+		output_desc,
+		output.data_ptr(),
+		output_desc,
+		output_grad.data_ptr(),
+		input_desc,
+		input.data_ptr(),
+		beta_ptr,
+		input_desc,
+		input_grad.data_ptr()
 	));
 
 	return input_grad;

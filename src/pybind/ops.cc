@@ -37,7 +37,12 @@ void init_ops(pybind11::module& m) {
 
 	ops_m.def("matmul", &NeuroFrame::matmul, "a"_a, "b"_a);
 
-	ops_m.def("pool", &NeuroFrame::pool, "input"_a, "pool_size"_a);
+	ops_m.def("pool", [](const Tensor &input, int64_t pool_size, int64_t stride, int64_t padding) -> Tensor {
+		if (stride == -1) {
+			stride = pool_size;
+		}
+		return NeuroFrame::pool(input, pool_size, stride, padding);
+	}, "input"_a, "pool_size"_a, "stride"_a = -1, "padding"_a = 0);
 
 	ops_m.def("relu", &NeuroFrame::relu, "input"_a);
 

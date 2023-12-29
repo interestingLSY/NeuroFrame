@@ -222,7 +222,7 @@ int main() {
 		output_grad.print();
 
 		NeuroFrame::OpContext ctx;
-		Tensor output = NeuroFrame::pool_forward_manual(input_img, 2, ctx);
+		Tensor output = NeuroFrame::pool_forward_manual(input_img, 2, 1, 0, ctx);
 		printf("Output:\n");
 		output.print();
 		assert_whenever (output == output_reference);

@@ -3,6 +3,7 @@ add_library(neuroframe_backend_cuda STATIC
 	broadcast.cu
 	convolution.cu
 	cross_entropy_loss.cu
+	cudnn_utils.cu
 	matmul.cu
 	misc.cu
 	pool.cu

@@ -4,8 +4,8 @@
 
 namespace NeuroFrame::Backend::CPU {
 
-std::pair<Tensor, Tensor> pool_forward(const Tensor &input, int pool_size);
+Tensor pool_forward(const Tensor &input, int pool_size, int stride, int padding);
 
-Tensor pool_backward(const Tensor &output_grad, const Tensor &max_mask, int pool_size);
+Tensor pool_backward(const Tensor &output_grad, const Tensor &input, const Tensor &output, int pool_size, int stride, int padding);
 
 }

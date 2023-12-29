@@ -6,41 +6,9 @@
 #include "src/tensor/tensor.h"
 
 #include "utils.h"
+#include "cudnn_utils.h"
 
 namespace NeuroFrame::Backend::CUDA {
-
-static cudnnHandle_t cudnn_handle;
-
-#define CUDNN_CHECK(call) \
-{ \
-	cudnnStatus_t status = call; \
-	if (status != CUDNN_STATUS_SUCCESS) { \
-		LOG_FATAL("CUDNN error: %s", cudnnGetErrorString(status)); \
-	} \
-}
-
-static inline cudnnDataType_t get_cudnn_data_type(dtype_t dtype) {
-	switch (dtype) {
-		case dtype_t::FLOAT16:
-			return CUDNN_DATA_HALF;
-		case dtype_t::FLOAT32:
-			return CUDNN_DATA_FLOAT;
-		case dtype_t::FLOAT64:
-			return CUDNN_DATA_DOUBLE;
-		default:
-			LOG_FATAL("Unsupported dtype");
-	}
-}
-
-class CUDNNInitializer {
-public:
-	CUDNNInitializer() {
-		CUDNN_CHECK(cudnnCreate(&cudnn_handle));
-	}
-	~CUDNNInitializer() {
-		CUDNN_CHECK(cudnnDestroy(cudnn_handle));
-	}
-} _cudnn_initializer;
 
 Tensor convolution_forward(const Tensor &input_img, const Tensor &kernel, const int64_t stride, const int64_t dilation) {
 	if (input_img.dim() != 4) {
@@ -62,11 +30,7 @@ Tensor convolution_forward(const Tensor &input_img, const Tensor &kernel, const 
 
 	Tensor result({b, c_out, out_h, out_w}, input_img.dtype, input_img.device);
 
-	// Get alpha and beta
-	float float_one = 1.0, float_zero = 0.0;
-	double double_one = 1.0, double_zero = 0.0;
-	void* alpha_ptr = input_img.dtype == dtype_t::FLOAT64 ? (void*)&double_one : (void*)&float_one;
-	void* beta_ptr = input_img.dtype == dtype_t::FLOAT64 ? (void*)&double_zero : (void*)&float_zero;
+	auto [alpha_ptr, beta_ptr] = get_alpha_beta_ptrs(input_img.dtype);
 
 	static cudnnTensorDescriptor_t input_desc;
 	static cudnnTensorDescriptor_t output_desc;
@@ -137,10 +101,7 @@ std::tuple<Tensor, Tensor> convolution_backward(const Tensor &output_grad, const
 	Tensor kernel_grad({c_out, c_in, kh, kw}, output_grad.dtype, output_grad.device);
 
 	// Get alpha and beta
-	float float_one = 1.0, float_zero = 0.0;
-	double double_one = 1.0, double_zero = 0.0;
-	void* alpha_ptr = output_grad.dtype == dtype_t::FLOAT64 ? (void*)&double_one : (void*)&float_one;
-	void* beta_ptr = output_grad.dtype == dtype_t::FLOAT64 ? (void*)&double_zero : (void*)&float_zero;
+	auto [alpha_ptr, beta_ptr] = get_alpha_beta_ptrs(input_img.dtype);
 
 	static cudnnTensorDescriptor_t input_grad_desc;
 	static cudnnTensorDescriptor_t output_grad_desc;

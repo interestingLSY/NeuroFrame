@@ -3,7 +3,6 @@ add_executable(unittest_op
 	binary_ops.cc
 	cross_entropy_loss.cc
 	matmul.cc
-	pool.cc
 	scalar_ops.cc
 	unary_ops.cc
 	transpose.cc
